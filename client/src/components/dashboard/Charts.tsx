@@ -79,11 +79,11 @@ export function PerformanceAreaChart() {
           />
           <Tooltip
             contentStyle={{
-              background: "hsl(var(--card))",
-              border: "1px solid hsl(var(--border))",
+              background: "var(--card)",
+              border: "1px solid var(--border)",
               borderRadius: "12px",
               fontSize: "12px",
-              color: "hsl(var(--foreground))",
+              color: "var(--foreground)",
             }}
           />
           <Area

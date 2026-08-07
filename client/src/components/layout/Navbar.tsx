@@ -21,7 +21,7 @@ export function Navbar() {
   const page = pageTitles[pathname] ?? { title: "IntervAI", subtitle: "AI Interview Platform" };
 
   return (
-    <header className="h-14 bg-background/80 dark:bg-background/80 backdrop-blur-md border-b border-border/60 flex items-center px-6 gap-4 sticky top-0 z-20">
+    <header className="h-14 bg-[var(--background)]/80 dark:bg-[var(--background)]/80 backdrop-blur-md border-b border-[var(--border)]/60 flex items-center px-6 gap-4 sticky top-0 z-20">
       {/* Page title */}
       <div className="flex-1">
         <motion.div

@@ -78,7 +78,7 @@ export default function LoginPage() {
                 AI-Powered Technical Interviews
               </div>
               <h1 className="text-5xl font-bold text-foreground leading-[1.1] tracking-tight mb-5">
-                Practice interviews that know{" "}
+                Practice interviews that know{' '}
                 <span className="text-gradient">your curriculum</span>
               </h1>
               <p className="text-lg text-muted-foreground leading-relaxed">
@@ -143,7 +143,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right Panel ────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
+      <div className="flex-1 flex items-center justify-center p-6 bg-[var(--background)]">
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}

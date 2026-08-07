@@ -29,6 +29,7 @@ export interface TurnMessage {
 }
 
 export interface Feedback {
+  score?: number;
   summary: string;
   strengths: string[];
   gaps: string[];

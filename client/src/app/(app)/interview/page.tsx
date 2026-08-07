@@ -169,11 +169,12 @@ export default function InterviewPage() {
   if (!candidate) return null;
 
   const totalScore =
-    feedback
+    feedback?.score ??
+    (feedback
       ? Math.round(
           (feedback.strengths.length / Math.max(feedback.strengths.length + feedback.gaps.length, 1)) * 100
         )
-      : 0;
+      : 0);
 
   return (
     <div className="max-w-6xl mx-auto h-full">
@@ -233,7 +234,7 @@ export default function InterviewPage() {
 
             {/* Feedback Sections */}
             <div className="lg:col-span-2">
-              <FeedbackSection feedback={feedback} />
+              <FeedbackSection feedback={feedback} summary={feedback.summary} />
             </div>
           </div>
         </motion.div>
