@@ -1,6 +1,13 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import { SessionStore } from '../models/Session.js';
 import { InterviewAgentService } from '../services/interviewAgentService.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envPath = path.join(__dirname, '../.env');
 
 const router = express.Router();
 
@@ -10,7 +17,13 @@ const router = express.Router();
  */
 router.post('/interview', async (req, res) => {
   try {
-    const { sessionId, candidate, message } = req.body;
+    const { sessionId, candidate, message, apiKey } = req.body;
+
+    // Dynamically update GEMINI_API_KEY if passed in headers or body
+    const reqKey = apiKey || req.headers['x-gemini-api-key'];
+    if (reqKey && typeof reqKey === 'string' && reqKey.trim()) {
+      process.env.GEMINI_API_KEY = reqKey.trim();
+    }
 
     if (!sessionId) {
       return res.status(400).json({ error: 'sessionId is required in request body' });
@@ -50,7 +63,13 @@ router.post('/interview', async (req, res) => {
 
       return res.json({
         reply: result.reply,
-        done: result.done
+        done: result.done,
+        isGeminiActive: result.isGeminiActive,
+        coveredDays: session.coveredDays,
+        currentTopicDay: session.currentTopicDay,
+        questionCount: session.questionCount,
+        lastTurnScore: result.lastTurnScore,
+        lastTurnVerdict: result.lastTurnVerdict
       });
     }
 
@@ -59,6 +78,10 @@ router.post('/interview', async (req, res) => {
       return res.json({
         reply: 'Interview is already completed.',
         done: true,
+        isGeminiActive: InterviewAgentService.isGeminiAvailable(),
+        coveredDays: session.coveredDays,
+        currentTopicDay: session.currentTopicDay,
+        questionCount: session.questionCount,
         feedback: session.feedback
       });
     }
@@ -73,13 +96,25 @@ router.post('/interview', async (req, res) => {
       return res.json({
         reply: result.reply,
         done: true,
+        isGeminiActive: result.isGeminiActive,
+        coveredDays: session.coveredDays,
+        currentTopicDay: session.currentTopicDay,
+        questionCount: session.questionCount,
+        lastTurnScore: result.lastTurnScore,
+        lastTurnVerdict: result.lastTurnVerdict,
         feedback: result.feedback
       });
     }
 
     return res.json({
       reply: result.reply,
-      done: false
+      done: false,
+      isGeminiActive: result.isGeminiActive,
+      coveredDays: session.coveredDays,
+      currentTopicDay: session.currentTopicDay,
+      questionCount: session.questionCount,
+      lastTurnScore: result.lastTurnScore,
+      lastTurnVerdict: result.lastTurnVerdict
     });
 
   } catch (err) {
@@ -196,6 +231,42 @@ router.post('/test-suite/run', async (req, res) => {
 
   } catch (err) {
     return res.status(500).json({ status: 'ERROR', error: err.message });
+  }
+});
+
+/**
+ * Get Gemini API Key configuration status
+ */
+router.get('/config', (req, res) => {
+  const hasKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+  return res.json({
+    hasGeminiKey: hasKey,
+    model: 'gemini-2.0-flash'
+  });
+});
+
+/**
+ * Set or update Gemini API Key dynamically from UI
+ */
+router.post('/config/key', (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    if (!apiKey || typeof apiKey !== 'string') {
+      return res.status(400).json({ error: 'apiKey string is required' });
+    }
+    const cleanKey = apiKey.trim();
+    process.env.GEMINI_API_KEY = cleanKey;
+
+    try {
+      const envContent = `PORT=${process.env.PORT || 5000}\nGEMINI_API_KEY=${cleanKey}\n`;
+      fs.writeFileSync(envPath, envContent, 'utf8');
+    } catch (e) {
+      console.warn('Could not persist .env file:', e.message);
+    }
+
+    return res.json({ success: true, hasGeminiKey: true, message: 'Gemini API Key updated successfully.' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 

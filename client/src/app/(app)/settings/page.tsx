@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -12,10 +12,12 @@ import {
   Bot,
   Cpu,
   Shield,
-  ChevronRight,
   Check,
+  Key,
+  Sparkles,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { getApiConfig, setGeminiKey } from "@/lib/api";
 
 function SettingRow({
   icon,
@@ -66,6 +68,35 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState(true);
   const [sounds, setSounds] = useState(false);
   const [aiVerbose, setAiVerbose] = useState(true);
+  const [hasGeminiKey, setHasGeminiKey] = useState<boolean>(false);
+  const [apiKeyInput, setApiKeyInput] = useState<string>("");
+  const [savingKey, setSavingKey] = useState<boolean>(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    getApiConfig()
+      .then((cfg) => setHasGeminiKey(cfg.hasGeminiKey))
+      .catch(console.error);
+  }, []);
+
+  const handleSaveKey = async () => {
+    if (!apiKeyInput.trim()) return;
+    setSavingKey(true);
+    setSaveMessage(null);
+    try {
+      const res = await setGeminiKey(apiKeyInput.trim());
+      if (res.success) {
+        setHasGeminiKey(true);
+        setApiKeyInput("");
+        setSaveMessage("Gemini API Key saved successfully!");
+        setTimeout(() => setSaveMessage(null), 3000);
+      }
+    } catch (e) {
+      setSaveMessage("Failed to save API Key. Please try again.");
+    } finally {
+      setSavingKey(false);
+    }
+  };
 
   const themes = [
     { value: "light", label: "Light", icon: <Sun className="w-4 h-4" /> },
@@ -74,6 +105,62 @@ export default function SettingsPage() {
   ];
 
   const sections = [
+    {
+      title: "Google Gemini API Integration",
+      icon: <Sparkles className="w-4 h-4 text-amber-500" />,
+      content: (
+        <div className="py-2 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-foreground">
+                Integration Status:
+              </span>
+              <span
+                className={cn(
+                  "text-xs px-2.5 py-0.5 rounded-full font-semibold",
+                  hasGeminiKey
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                )}
+              >
+                {hasGeminiKey ? "⚡ Active (Gemini Connected)" : "⚠️ Key Needed"}
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground font-mono">
+              Model: gemini-2.0-flash
+            </span>
+          </div>
+
+          <div className="flex gap-2 items-center pt-1">
+            <div className="relative flex-1">
+              <Key className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="password"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder={hasGeminiKey ? "Paste new key to update..." : "Paste your Google Gemini API Key..."}
+                className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-border/80 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <button
+              onClick={handleSaveKey}
+              disabled={savingKey || !apiKeyInput.trim()}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-xs font-semibold disabled:opacity-50 transition-all flex-shrink-0"
+            >
+              {savingKey ? "Saving..." : "Save Key"}
+            </button>
+          </div>
+          {saveMessage && (
+            <p className={cn("text-xs font-medium", saveMessage.includes("successfully") ? "text-emerald-500" : "text-rose-500")}>
+              {saveMessage}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Enter your API key from Google AI Studio. It powers live LLM questions, turn evaluation, dynamic probing, and structured final scorecards.
+          </p>
+        </div>
+      ),
+    },
     {
       title: "Appearance",
       icon: <Sun className="w-4 h-4" />,
@@ -104,24 +191,24 @@ export default function SettingsPage() {
       ),
     },
     {
-      title: "AI Model",
+      title: "AI Model & Behavior",
       icon: <Bot className="w-4 h-4" />,
       content: (
         <div>
           <SettingRow
             icon={<Cpu className="w-4 h-4" />}
-            title="AI Model"
-            description="Powered by Google Gemini Flash"
+            title="Active Model Engine"
+            description="Automatic fallback across Gemini 2.0 Flash, 1.5 Flash, and 1.5 Pro"
             control={
-              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
-                gemini-flash
+              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-semibold flex-shrink-0">
+                gemini-2.0-flash
               </span>
             }
           />
           <SettingRow
             icon={<Bot className="w-4 h-4" />}
-            title="Verbose Responses"
-            description="AI provides detailed follow-up context"
+            title="Verbose Follow-up Probing"
+            description="AI probes edge cases and architecture trade-offs"
             control={<Toggle value={aiVerbose} onChange={setAiVerbose} />}
           />
         </div>
@@ -148,17 +235,17 @@ export default function SettingsPage() {
       ),
     },
     {
-      title: "Privacy & Data",
+      title: "Privacy & Security",
       icon: <Shield className="w-4 h-4" />,
       content: (
         <div>
           <SettingRow
             icon={<Shield className="w-4 h-4" />}
             title="Session Storage"
-            description="Interview sessions stored locally only"
+            description="Interview sessions and credentials stored locally"
             control={
               <span className="text-xs text-emerald-600 font-medium flex-shrink-0">
-                Local only
+                Local Environment
               </span>
             }
           />
@@ -176,7 +263,7 @@ export default function SettingsPage() {
       >
         <h1 className="text-lg font-bold text-foreground">Settings</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Manage your preferences and account settings
+          Manage your AI model keys, preferences, and workspace settings
         </p>
       </motion.div>
 
@@ -202,3 +289,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

@@ -10,6 +10,8 @@ import {
   fetchCurriculum,
   startInterview,
   sendMessage,
+  getApiConfig,
+  setGeminiKey,
   CurriculumData,
 } from "@/lib/api";
 import { AIAvatar } from "@/components/interview/AIAvatar";
@@ -20,9 +22,10 @@ import { cn, generateSessionId } from "@/lib/utils";
 import {
   Send,
   RotateCcw,
-  StopCircle,
   Trophy,
   Download,
+  Key,
+  Sparkles,
 } from "lucide-react";
 
 type AvatarState = "idle" | "thinking" | "speaking" | "evaluating";
@@ -43,9 +46,19 @@ export default function InterviewPage() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [started, setStarted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasGeminiKey, setHasGeminiKey] = useState<boolean>(false);
+  const [inlineKey, setInlineKey] = useState<string>("");
+  const [savingKey, setSavingKey] = useState<boolean>(false);
 
   const feedRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Check API config
+  useEffect(() => {
+    getApiConfig()
+      .then((cfg) => setHasGeminiKey(cfg.hasGeminiKey))
+      .catch(console.error);
+  }, []);
 
   // Scroll chat to bottom
   useEffect(() => {
@@ -83,8 +96,9 @@ export default function InterviewPage() {
           timestamp: new Date().toISOString(),
         },
       ]);
-      setQuestionCount(1);
-      // extract day from reply if possible
+      setQuestionCount(response.questionCount || 1);
+      if (response.coveredDays) setCoveredDays(response.coveredDays);
+      if (response.currentTopicDay) setCurrentDay(response.currentTopicDay);
       setTimeout(() => setAvatarState("idle"), 1500);
     } catch (e) {
       setError("Failed to connect to the AI interviewer. Make sure the server is running.");
@@ -122,7 +136,9 @@ export default function InterviewPage() {
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, aiMsg]);
-      setQuestionCount((q) => q + 1);
+      setQuestionCount(response.questionCount || messages.length + 1);
+      if (response.coveredDays) setCoveredDays(response.coveredDays);
+      if (response.currentTopicDay) setCurrentDay(response.currentTopicDay);
 
       if (response.done) {
         setIsDone(true);
@@ -273,20 +289,68 @@ export default function InterviewPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="h-full flex flex-col items-center justify-center gap-6 py-12"
+                    className="h-full flex flex-col items-center justify-center gap-5 py-8"
                   >
                     <AIAvatar state="idle" />
-                    <div className="text-center max-w-sm">
+                    <div className="text-center max-w-md">
+                      <div className="flex items-center justify-center gap-2 mb-3">
+                        <span className={cn(
+                          "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border",
+                          hasGeminiKey
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                            : "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                        )}>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          {hasGeminiKey ? "Gemini 2.0 Flash Connected" : "Gemini API Key Optional"}
+                        </span>
+                      </div>
+
                       <h3 className="text-lg font-bold text-foreground mb-2">
                         Ready to interview{" "}
                         {candidate.member.name.split(" ")[0]}?
                       </h3>
-                      <p className="text-sm text-muted-foreground mb-6">
-                        The AI has reviewed your{" "}
+                      <p className="text-sm text-muted-foreground mb-4">
+                        The AI interviewer will adapt in real-time to your{" "}
                         {candidate.signals?.missionsCompleted ?? 0} completed
-                        missions and will ask questions based on your curriculum
-                        progress.
+                        cohort missions, evaluate your technical depth per turn, and output a full evaluation scorecard.
                       </p>
+
+                      {!hasGeminiKey && (
+                        <div className="mb-5 p-3 rounded-xl bg-card border border-border/80 text-left">
+                          <p className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                            <Key className="w-3.5 h-3.5 text-amber-500" />
+                            Add Gemini API Key for Live LLM Responses:
+                          </p>
+                          <div className="flex gap-2">
+                            <input
+                              type="password"
+                              value={inlineKey}
+                              onChange={(e) => setInlineKey(e.target.value)}
+                              placeholder="Paste Google Gemini API Key..."
+                              className="flex-1 text-xs px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                            <button
+                              disabled={savingKey || !inlineKey.trim()}
+                              onClick={async () => {
+                                setSavingKey(true);
+                                try {
+                                  await setGeminiKey(inlineKey.trim());
+                                  setHasGeminiKey(true);
+                                  setInlineKey("");
+                                } catch (e) {
+                                  console.error(e);
+                                } finally {
+                                  setSavingKey(false);
+                                }
+                              }}
+                              className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
+                            >
+                              {savingKey ? "Saving..." : "Save Key"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       {error && (
                         <p className="text-sm text-rose-500 mb-4 text-center">
                           {error}
@@ -296,7 +360,7 @@ export default function InterviewPage() {
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={beginInterview}
-                        className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-semibold shadow-glow"
+                        className="px-7 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-semibold shadow-glow"
                       >
                         🎤 Start Interview
                       </motion.button>

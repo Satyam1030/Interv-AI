@@ -50,6 +50,12 @@ export interface Session {
 export interface InterviewResponse {
   reply: string;
   done: boolean;
+  isGeminiActive?: boolean;
+  coveredDays?: number[];
+  currentTopicDay?: number;
+  questionCount?: number;
+  lastTurnScore?: number;
+  lastTurnVerdict?: "STRONG" | "ADEQUATE" | "WEAK";
   feedback?: Feedback;
 }
 
@@ -123,5 +129,25 @@ export async function fetchSession(sessionId: string): Promise<Session | null> {
 
 export async function runContractTest(): Promise<unknown> {
   const res = await fetch(`${BASE}/test-suite/run`, { method: "POST" });
+  return res.json();
+}
+
+export async function getApiConfig(): Promise<{ hasGeminiKey: boolean; model: string }> {
+  try {
+    const res = await fetch(`${BASE}/config`);
+    if (!res.ok) return { hasGeminiKey: false, model: "gemini-2.0-flash" };
+    return res.json();
+  } catch {
+    return { hasGeminiKey: false, model: "gemini-2.0-flash" };
+  }
+}
+
+export async function setGeminiKey(apiKey: string): Promise<{ success: boolean; hasGeminiKey: boolean }> {
+  const res = await fetch(`${BASE}/config/key`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apiKey }),
+  });
+  if (!res.ok) throw new Error("Failed to update API Key");
   return res.json();
 }

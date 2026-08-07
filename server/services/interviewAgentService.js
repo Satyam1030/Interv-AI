@@ -14,24 +14,56 @@ const curriculumData = JSON.parse(fs.readFileSync(curriculumPath, 'utf8'));
 const candidatesData = JSON.parse(fs.readFileSync(candidatesPath, 'utf8'));
 
 /**
- * Call Gemini AI with automatic model fallback
+ * Clean markdown formatting from JSON model outputs
+ */
+function cleanJsonString(text) {
+  if (!text) return '';
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+  } else if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
+  }
+  return cleaned.trim();
+}
+
+/**
+ * Call Gemini AI with automatic model fallback and JSON parsing helper
  */
 async function callGemini(prompt, isJson = false) {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-  if (!apiKey) return null;
+  if (!apiKey) {
+    return null;
+  }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest', 'gemini-1.5-pro'];
+  // Try available Gemini models in order of performance and compatibility
+  const modelsToTry = [
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-flash-latest'
+  ];
 
   for (const modelName of modelsToTry) {
     try {
       const config = isJson ? { generationConfig: { responseMimeType: 'application/json' } } : {};
       const model = genAI.getGenerativeModel({ model: modelName, ...config });
       const result = await model.generateContent(prompt);
-      const text = result.response.text().trim();
+      const rawText = result.response.text();
+      const text = cleanJsonString(rawText);
       if (text) return text;
     } catch (err) {
-      console.warn(`Gemini model ${modelName} call notice:`, err.message);
+      console.warn(`[Gemini API] Notice for model ${modelName} (JSON config):`, err.message);
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(isJson ? `${prompt}\n\nIMPORTANT: Return ONLY a valid raw JSON object. Do not include markdown codeblocks or extra commentary.` : prompt);
+        const rawText = result.response.text();
+        const text = cleanJsonString(rawText);
+        if (text) return text;
+      } catch (err2) {
+        console.warn(`[Gemini API] Notice for model ${modelName} (Standard fallback):`, err2.message);
+      }
     }
   }
   return null;
@@ -50,6 +82,10 @@ export class InterviewAgentService {
     return candidatesData.candidates.find(c => c.member.id === id) || null;
   }
 
+  static isGeminiAvailable() {
+    return Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+  }
+
   /**
    * Selects target curriculum days tailored to candidate's mission history
    */
@@ -61,7 +97,7 @@ export class InterviewAgentService {
     const missions = candidate.missions;
     const targetDays = new Set();
 
-    // 1. High attempt / struggled missions
+    // 1. High attempt / struggled missions (prioritize areas needing validation)
     missions
       .filter(m => (m.attempts && m.attempts >= 3) || m.passed === false)
       .forEach(m => targetDays.add(m.day));
@@ -71,7 +107,7 @@ export class InterviewAgentService {
       .filter(m => m.skipped)
       .forEach(m => targetDays.add(m.day));
 
-    // 3. Core milestones
+    // 3. Core milestones (RAG, Vector DB, Prompting, MCP, Multi-Agent, Observability)
     const coreMilestones = [7, 8, 12, 13, 16, 22, 23, 28, 31];
     for (const day of coreMilestones) {
       if (targetDays.size >= 5) break;
@@ -88,7 +124,6 @@ export class InterviewAgentService {
     const found = curriculumData.days.find(d => d.day === dayNumber);
     if (found) return found;
 
-    // Fallback search in modules
     return {
       day: dayNumber,
       title: `Day ${dayNumber} AI Architecture`,
@@ -111,6 +146,7 @@ export class InterviewAgentService {
 
     const candidateName = candidate.member?.name || 'Candidate';
     const jobRole = candidate.member?.jobRole || 'AI Engineer';
+    const isGeminiActive = this.isGeminiAvailable();
 
     // ───────────────────────────────────────────────────────────────────────────
     // Turn 1: Opening Greeting & Initial Technical Question
@@ -121,20 +157,20 @@ export class InterviewAgentService {
       const firstDayInfo = this.getDayDetails(firstDayNum);
 
       let firstQuestion = `Welcome ${candidateName}! I'm IntervAI, your AI engineering lead interviewer today. ` +
-        `Given your background as a ${jobRole} and your work in the 31-Day AI Cohort, let's start with Day ${firstDayNum} (${firstDayInfo.title}). ` +
-        `Could you walk me through how you implemented ${firstDayInfo.objectives[0] || 'the core system'} using ${firstDayInfo.tools?.join(', ') || 'your tech stack'}? What architectural choices did you make?`;
+        `Given your experience as a ${jobRole} and your work in the 31-Day AI Cohort, let me start with Day ${firstDayNum} (${firstDayInfo.title}). ` +
+        `Could you walk me through how you implemented ${firstDayInfo.objectives[0] || 'the core system'} using ${firstDayInfo.tools?.join(', ') || 'your tech stack'}? What architectural choices and trade-offs did you make?`;
 
       const prompt = `You are IntervAI, an elite Senior AI Architect interviewing ${candidateName} (${jobRole}).
 Candidate Profile:
 - Experience: ${candidate.member?.yearsExperience || 5} years, ${candidate.member?.education || 'CS'}
 - Cohort Progress: Completed ${candidate.signals?.missionsCompleted || 25} missions
-- Missions Context: ${JSON.stringify(candidate.missions?.slice(0, 5))}
+- Recent Missions: ${JSON.stringify(candidate.missions?.slice(0, 5))}
 
 Topic Focus: Day ${firstDayNum} - "${firstDayInfo.title}"
 Tools: ${firstDayInfo.tools?.join(', ')}
 Objectives: ${JSON.stringify(firstDayInfo.objectives)}
 
-Task: Generate a warm, crisp, professional opening technical question. Acknowledge their experience as a ${jobRole}, set an engaging tone, and ask specifically how they implemented Day ${firstDayNum} concepts. Do not use generic placeholders. Keep under 3 sentences.`;
+Task: Generate a warm, crisp, highly technical opening interview question. Acknowledge their role as a ${jobRole}, set an engaging professional tone, and ask specifically how they implemented Day ${firstDayNum} concepts in their cohort projects. Do not use generic placeholders. Keep it under 3 concise sentences.`;
 
       const aiOpening = await callGemini(prompt);
       if (aiOpening) {
@@ -154,6 +190,7 @@ Task: Generate a warm, crisp, professional opening technical question. Acknowled
       return {
         reply: firstQuestion,
         done: false,
+        isGeminiActive,
         session
       };
     }
@@ -168,31 +205,48 @@ Task: Generate a warm, crisp, professional opening technical question. Acknowled
     const currentDayInfo = this.getDayDetails(currentTopicDay);
 
     // Step 1: Real-time Evaluation of candidate's answer with Gemini
-    const evalPrompt = `You are evaluating a candidate's answer in a technical AI interview.
+    const evalPrompt = `You are evaluating a candidate's response during a technical AI engineering interview.
 Candidate: ${candidateName} (${jobRole})
 Curriculum Topic: Day ${currentTopicDay} (${currentDayInfo.title})
 Tools involved: ${currentDayInfo.tools?.join(', ')}
-Objectives: ${JSON.stringify(currentDayInfo.objectives)}
+Key Objectives: ${JSON.stringify(currentDayInfo.objectives)}
 
 Candidate's Answer: "${userMessage}"
 
-Evaluate their answer in JSON:
+Evaluate their technical answer thoroughly and output JSON:
 {
-  "score": integer between 0 and 100 based on technical depth and correctness,
+  "score": integer between 0 and 100 based on technical depth, accuracy, and trade-off understanding,
   "verdict": "STRONG" or "ADEQUATE" or "WEAK",
-  "feedback": "1 sentence brief technical commentary on their answer"
+  "feedback": "1 sentence precise technical commentary on what was good or missing"
 }`;
 
-    let turnEval = { score: 75, verdict: 'ADEQUATE', feedback: 'Provided reasonable explanation.' };
-    const evalResultText = await callGemini(evalPrompt, true);
-    if (evalResultText) {
-      try {
-        const parsedEval = JSON.parse(evalResultText);
-        if (typeof parsedEval.score === 'number') {
-          turnEval = parsedEval;
+    let turnEval = { score: 78, verdict: 'ADEQUATE', feedback: 'Provided reasonable technical explanation.' };
+    
+    // Simple heuristic calculation when Gemini API key is absent
+    if (!isGeminiActive) {
+      const len = userMessage.trim().length;
+      if (len > 180) {
+        turnEval = { score: 88, verdict: 'STRONG', feedback: 'Detailed response explaining key architectural choices.' };
+      } else if (len > 70) {
+        turnEval = { score: 78, verdict: 'ADEQUATE', feedback: 'Good conceptual foundation, could detail edge cases further.' };
+      } else {
+        turnEval = { score: 62, verdict: 'WEAK', feedback: 'Brief response; missing operational details and trade-offs.' };
+      }
+    } else {
+      const evalResultText = await callGemini(evalPrompt, true);
+      if (evalResultText) {
+        try {
+          const parsedEval = JSON.parse(evalResultText);
+          if (typeof parsedEval.score === 'number') {
+            turnEval = {
+              score: Math.min(100, Math.max(0, Math.round(parsedEval.score))),
+              verdict: ['STRONG', 'ADEQUATE', 'WEAK'].includes(parsedEval.verdict) ? parsedEval.verdict : 'ADEQUATE',
+              feedback: parsedEval.feedback || 'Evaluated answer against curriculum standard.'
+            };
+          }
+        } catch (e) {
+          console.warn('[Gemini API] Turn evaluation JSON parse notice, using score fallback');
         }
-      } catch (e) {
-        console.warn('Failed to parse turn eval JSON, using default');
       }
     }
 
@@ -204,7 +258,7 @@ Evaluate their answer in JSON:
     });
     session.evaluationTrail = evaluationTrail;
 
-    // Step 2: Determine if topic finishes or progresses
+    // Step 2: Determine if current topic finishes or progresses to next topic
     const isTopicFinished = topicQuestionCount >= 2 || userMessage.length > 250 || turnEval.verdict === 'STRONG';
 
     if (isTopicFinished) {
@@ -227,13 +281,13 @@ Evaluate their answer in JSON:
     coveredDays.add(currentTopicDay);
     const coveredDaysArr = Array.from(coveredDays);
 
-    // Step 3: Check if interview complete (8+ questions across 4+ days)
+    // Step 3: Check if interview complete (>= 8 questions answered AND >= 4 topics covered)
     const isInterviewComplete = currentQuestionCount >= 8 && coveredDaysArr.length >= 4;
 
     if (isInterviewComplete && (topicQuestionCount >= 2 || currentQuestionCount >= 9)) {
       const feedback = await this.generateFeedback(candidate, history, coveredDaysArr, evaluationTrail);
 
-      const closingReply = `Thank you ${candidateName}! That concludes our technical interview. You've demonstrated great engineering thought across ${coveredDaysArr.length} cohort modules. I have compiled your structured AI evaluation report and performance score below.`;
+      const closingReply = `Thank you, ${candidateName}! That completes our technical interview session. You've demonstrated your engineering approach across ${coveredDaysArr.length} cohort topics. I have generated your comprehensive evaluation scorecard and performance feedback below.`;
 
       session.turnHistory.push({ role: 'interviewer', content: closingReply, timestamp: new Date().toISOString() });
       session.isComplete = true;
@@ -244,6 +298,9 @@ Evaluate their answer in JSON:
       return {
         reply: closingReply,
         done: true,
+        isGeminiActive,
+        lastTurnScore: turnEval.score,
+        lastTurnVerdict: turnEval.verdict,
         feedback,
         session
       };
@@ -259,24 +316,24 @@ Evaluate their answer in JSON:
 Current Context:
 - Question #${currentQuestionCount} of 8+
 - Current Focus: Day ${currentTopicDay} - "${nextDayInfo.title}"
-- Tools: ${nextDayInfo.tools?.join(', ')}
+- Stack & Tools: ${nextDayInfo.tools?.join(', ')}
 - Objectives: ${JSON.stringify(nextDayInfo.objectives)}
 - Covered Days: [${coveredDaysArr.join(', ')}]
-- Candidate's Last Answer Verdict: ${turnEval.verdict} (${turnEval.score}/100)
+- Candidate's Last Answer Score: ${turnEval.score}/100 (${turnEval.verdict}) - Feedback: "${turnEval.feedback}"
 
 Instructions:
-1. Provide a very brief 1-sentence natural transition acknowledging their prior point.
-2. ${topicQuestionCount > 1 ? `Ask a sharp follow-up probing deeper into technical edge cases or failure modes for ${nextDayInfo.tools?.[0] || 'this stack'}.` : `Transition to Day ${currentTopicDay} (${nextDayInfo.title}) and ask a practical implementation question about ${nextDayInfo.objectives[0] || 'their design'}.`}
-3. Keep it crisp, conversational, and technical. Do not use bullet lists.`;
+1. Provide a crisp 1-sentence transition acknowledging the candidate's last answer.
+2. ${topicQuestionCount > 1 ? `Ask a targeted follow-up probing deeper into edge cases, latency constraints, failure modes, or security considerations for ${nextDayInfo.tools?.[0] || 'this architecture'}.` : `Transition to Day ${currentTopicDay} (${nextDayInfo.title}) and ask a practical engineering question about ${nextDayInfo.objectives[0] || 'their implementation'}.`}
+3. Keep the prompt natural, direct, and technical. Do not use bullet points or meta-commentary.`;
 
-    const aiNextQuestion = await callGemini(`${systemPrompt}\n\nRecent Transcript:\n${historyPrompt}\n\nInterviewer Next Question:`);
+    const aiNextQuestion = await callGemini(`${systemPrompt}\n\nRecent Dialogue:\n${historyPrompt}\n\nInterviewer Next Question:`);
     if (aiNextQuestion) {
       nextQuestion = aiNextQuestion;
     } else {
       if (topicQuestionCount > 1) {
-        nextQuestion = `Understood. When deploying ${nextDayInfo.title} with ${nextDayInfo.tools?.[0] || 'your stack'}, how did you address latency budget, error handling, and concurrency limits?`;
+        nextQuestion = `Good points on ${currentDayInfo.title}. When deploying ${nextDayInfo.tools?.[0] || 'this stack'}, how did you address latency budgets, fallback options, and edge cases under high load?`;
       } else {
-        nextQuestion = `Moving to Day ${currentTopicDay} (${nextDayInfo.title}), how did you tackle ${nextDayInfo.objectives[0] || 'the mission requirement'} and what trade-offs influenced your architectural design?`;
+        nextQuestion = `Moving on to Day ${currentTopicDay} (${nextDayInfo.title}), could you explain how you approached ${nextDayInfo.objectives[0] || 'the mission requirements'} and what technical trade-offs shaped your design?`;
       }
     }
 
@@ -295,6 +352,9 @@ Instructions:
     return {
       reply: nextQuestion,
       done: false,
+      isGeminiActive,
+      lastTurnScore: turnEval.score,
+      lastTurnVerdict: turnEval.verdict,
       session
     };
   }
@@ -315,20 +375,20 @@ Instructions:
 
     let feedback = {
       score: avgTurnScore,
-      summary: `${candidateName} demonstrated solid understanding across ${coveredDays.length} key AI cohort modules. Showed practical clarity in prompt design and vector retrieval architecture, with room for improvement in edge-case monitoring and containerized deployment.`,
+      summary: `${candidateName} demonstrated strong conceptual and practical engineering clarity across ${coveredDays.length} key AI cohort modules. Showed effective design patterns for RAG, Vector Search, and Prompt Engineering, with minor growth areas in production telemetry and streaming optimization.`,
       strengths: [
-        `Strong grasp of Vector DB indexing and embeddings chunking strategies (Days 7 & 8).`,
-        `Effective communication of system architectural choices for RAG and tool integration.`,
-        `Clear understanding of prompt engineering and function calling schema design.`
+        `Clear architectural reasoning for vector indexing and chunking strategies (Days 7 & 8).`,
+        `Effective application of prompt engineering and structured schema output validation.`,
+        `Strong articulation of component trade-offs between RAG context and model latency.`
       ],
       gaps: [
-        `Could provide deeper explanations on handling streaming latency and token budget constraints.`,
-        `Observability and monitoring strategies (Day 29) need more concrete telemetry details.`,
-        `Evaluation metrics for multi-agent workflows could be framed with quantitative benchmarks.`
+        `Could provide deeper operational details on latency budgets and streaming token metrics.`,
+        `Observability and OpenTelemetry instrumentation (Day 29) require further quantitative metrics.`,
+        `Multi-agent tool orchestration guardrails could be framed with formal evaluation suites.`
       ],
       next: [
-        `Implement end-to-end tracing with OpenTelemetry for production RAG pipelines.`,
-        `Practice scenario-based architectural trade-off discussions for high-concurrency LLM deployments.`,
+        `Implement end-to-end tracing with OpenTelemetry for production vector retrieval pipelines.`,
+        `Practice scenario-based architectural trade-off analysis under high-concurrency LLM traffic.`,
         `Build a dedicated evaluation benchmark suite for capstone agent guardrails.`
       ]
     };
@@ -336,23 +396,22 @@ Instructions:
     const transcriptText = turnHistory.map(t => `${t.role.toUpperCase()}: ${t.content}`).join('\n\n');
     const evalSummaryText = JSON.stringify(evaluationTrail);
 
-    const prompt = `You are an executive AI technical interviewer writing the final assessment report for candidate ${candidateName} (${candidateRole}).
+    const prompt = `You are an executive AI Technical Interviewer evaluating candidate ${candidateName} (${candidateRole}).
 
-Covered Cohort Modules / Days: [${coveredDays.join(', ')}]
+Covered Modules / Days: [${coveredDays.join(', ')}]
 Candidate Profile: ${JSON.stringify(candidate.member)}
-Candidate Missions Context: ${JSON.stringify(candidate.missions?.slice(0, 6))}
-Turn Evaluations Summary: ${evalSummaryText}
+Turn-by-Turn Evaluations: ${evalSummaryText}
 
 Full Interview Transcript:
 ${transcriptText}
 
-Generate a comprehensive evaluation report JSON based directly on their actual answers.
-Return a valid JSON object matching EXACTLY this structure:
+Task: Write a rigorous, evidence-based candidate assessment report in JSON based on their ACTUAL interview answers.
+Format Requirements (Must be valid JSON):
 {
-  "score": integer between 0 and 100 representing overall candidate score based on answer accuracy and depth,
-  "summary": "2-3 sentence executive assessment summarizing candidate technical competence and interview performance",
-  "strengths": ["specific strength 1 quoting candidate's actual answer", "specific strength 2", "specific strength 3"],
-  "gaps": ["specific gap 1 identified from their actual answers", "specific gap 2", "specific gap 3"],
+  "score": integer between 0 and 100 reflecting overall answer accuracy, depth, and technical competence,
+  "summary": "2-3 sentence executive assessment summarizing candidate technical strength and performance",
+  "strengths": ["specific technical strength 1 referencing candidate's actual answers", "specific strength 2", "specific strength 3"],
+  "gaps": ["specific technical gap 1 observed in their answers", "specific gap 2", "specific gap 3"],
   "next": ["actionable curriculum recommendation 1", "actionable curriculum recommendation 2", "actionable curriculum recommendation 3"]
 }`;
 
@@ -362,15 +421,15 @@ Return a valid JSON object matching EXACTLY this structure:
         const parsed = JSON.parse(jsonText);
         if (parsed.summary && Array.isArray(parsed.strengths) && Array.isArray(parsed.gaps) && Array.isArray(parsed.next)) {
           feedback = {
-            score: typeof parsed.score === 'number' ? parsed.score : avgTurnScore,
+            score: typeof parsed.score === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.score))) : avgTurnScore,
             summary: parsed.summary,
-            strengths: parsed.strengths,
-            gaps: parsed.gaps,
-            next: parsed.next
+            strengths: parsed.strengths.slice(0, 4),
+            gaps: parsed.gaps.slice(0, 4),
+            next: parsed.next.slice(0, 4)
           };
         }
       } catch (err) {
-        console.warn('Gemini API feedback JSON parsing failed, using evaluation fallback:', err.message);
+        console.warn('[Gemini API] Feedback JSON parsing notice, using baseline feedback score:', err.message);
       }
     }
 
