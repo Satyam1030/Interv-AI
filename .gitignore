@@ -1,0 +1,21 @@
+# Node dependencies
+node_modules/
+**/node_modules/
+
+# Environment files and API keys
+.env
+**/.env
+*.env
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+
+# Logs & IDE
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
