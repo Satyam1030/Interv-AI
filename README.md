@@ -336,7 +336,10 @@ Create a `.env` file inside the `server` directory:
 
 ```env
 PORT=5000
-GEMINI_API_KEY=your_google_gemini_api_key
+MONGODB_URI=mongodb://127.0.0.1:27017/intervai
+JWT_SECRET=your_super_secret_jwt_key_here
+OPENROUTER_API_KEY=your_OPENROUTER_API_KEY_here
+NODE_ENV=development
 ```
 
 > ⚠️ Never commit your API key to GitHub.
