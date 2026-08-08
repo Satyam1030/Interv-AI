@@ -2,13 +2,12 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { SignUpButton, useUser } from "@clerk/nextjs";
 import { useAuth } from "@/components/providers/AuthContext";
 import {
-  Sparkles,
+  Brain,
   ArrowRight,
 } from "lucide-react";
 
@@ -32,15 +31,11 @@ export default function RegisterPage() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full max-w-md space-y-6"
       >
-        <div className="flex items-center mb-4">
-          <Image
-            src="/logo.png"
-            alt="IntervAI Logo"
-            width={120}
-            height={120}
-            className="object-contain"
-            priority
-          />
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+            <Brain className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-lg font-bold text-foreground">IntervAI</span>
         </div>
 
         <div>

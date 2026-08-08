@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
-import { Sparkles, Mail, ArrowRight, ArrowLeft } from "lucide-react";
+import { Brain, Mail, ArrowRight, ArrowLeft } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -36,15 +35,11 @@ export default function ForgotPasswordPage() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md space-y-6"
       >
-        <div className="flex items-center mb-2">
-          <Image
-            src="/logo.png"
-            alt="IntervAI Logo"
-            width={120}
-            height={120}
-            className="object-contain"
-            priority
-          />
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-glow">
+            <Brain className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-xl font-bold text-foreground">IntervAI</span>
         </div>
 
         <div>

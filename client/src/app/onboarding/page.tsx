@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   fetchCurriculum,
@@ -14,7 +13,7 @@ import {
 import { useAuth } from "@/components/providers/AuthContext";
 import { useClerk } from "@clerk/nextjs";
 import {
-  Sparkles,
+  Brain,
   CheckCircle2,
   AlertCircle,
   HelpCircle,
@@ -175,14 +174,9 @@ export default function OnboardingPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--background)] gap-4">
-        <Image
-          src="/logo.png"
-          alt="IntervAI Logo"
-          width={80}
-          height={80}
-          className="object-contain animate-pulse"
-          priority
-        />
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-glow animate-pulse">
+          <Brain className="w-6 h-6 text-white" />
+        </div>
         <p className="text-sm font-medium text-muted-foreground animate-pulse">
           Loading 31-Day AI Cohort Curriculum...
         </p>
@@ -214,7 +208,7 @@ export default function OnboardingPage() {
           </div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -z-10" />
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-4">
-            <Sparkles className="w-3.5 h-3.5" />
+            <Brain className="w-3.5 h-3.5" />
             Build Your Interview Profile
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-2">

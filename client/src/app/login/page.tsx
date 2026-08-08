@@ -3,16 +3,17 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import { useAuth } from "@/components/providers/AuthContext";
 import { loginUser, fetchCandidates, Candidate } from "@/lib/api";
 import {
-  Sparkles,
   Shield,
   Zap,
   ArrowRight,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
   Brain,
   Target,
   UserCheck,
@@ -102,15 +103,13 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex flex-col h-full p-12">
           {/* Logo */}
-          <div className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="IntervAI Logo"
-              width={140}
-              height={140}
-              className="object-contain"
-              priority
-            />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-glow">
+              <Brain className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-foreground tracking-tight">
+              IntervAI
+            </span>
           </div>
 
           {/* Hero copy */}
@@ -196,15 +195,12 @@ export default function LoginPage() {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="w-full max-w-md space-y-6"
         >
-          <div className="flex items-center justify-center mb-8">
-            <Image
-              src="/logo.png"
-              alt="IntervAI Logo"
-              width={120}
-              height={120}
-              className="object-contain"
-              priority
-            />
+          {/* Mobile logo */}
+          <div className="flex lg:hidden items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-glow-sm">
+              <Brain className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-lg font-bold text-foreground">IntervAI</span>
           </div>
 
           <div>
