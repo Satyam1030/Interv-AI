@@ -6,6 +6,7 @@ export interface User {
   yearsExperience: number;
   education: string;
   onboardingCompleted: boolean;
+  authProvider?: string;
   createdAt?: string;
 }
 
