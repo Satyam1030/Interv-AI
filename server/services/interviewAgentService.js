@@ -24,7 +24,13 @@ function cleanJsonString(text) {
   } else if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
   }
-  return cleaned.trim();
+  cleaned = cleaned.trim();
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+  return cleaned;
 }
 
 /**
@@ -39,9 +45,11 @@ async function callGemini(prompt, isJson = false) {
   const genAI = new GoogleGenerativeAI(apiKey);
   // Try available Gemini models in order of performance and compatibility
   const modelsToTry = [
+    'gemini-3-flash-preview',
+    'gemini-3.1-flash-lite',
+    'gemini-3.6-flash',
+    'gemini-2.5-pro',
     'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
     'gemini-flash-latest'
   ];
 
@@ -366,15 +374,26 @@ Instructions:
     const candidateName = candidate.member?.name || 'Candidate';
     const candidateRole = candidate.member?.jobRole || 'AI Engineer';
 
-    // Calculate baseline score from turn evaluations
+    // Calculate baseline scores from turn evaluations
     let avgTurnScore = 82;
     if (evaluationTrail.length > 0) {
       const sum = evaluationTrail.reduce((acc, t) => acc + (t.score || 75), 0);
       avgTurnScore = Math.round(sum / evaluationTrail.length);
     }
 
+    let tech = Math.min(100, Math.max(50, avgTurnScore + 3));
+    let reas = Math.min(100, Math.max(50, avgTurnScore - 2));
+    let comm = Math.min(100, Math.max(50, avgTurnScore + 4));
+    let prob = Math.min(100, Math.max(50, avgTurnScore - 1));
+
+    let overallScore = Math.round(tech * 0.40 + reas * 0.25 + comm * 0.15 + prob * 0.20);
+
     let feedback = {
-      score: avgTurnScore,
+      score: overallScore,
+      technical: tech,
+      reasoning: reas,
+      communication: comm,
+      problemSolving: prob,
       summary: `${candidateName} demonstrated strong conceptual and practical engineering clarity across ${coveredDays.length} key AI cohort modules. Showed effective design patterns for RAG, Vector Search, and Prompt Engineering, with minor growth areas in production telemetry and streaming optimization.`,
       strengths: [
         `Clear architectural reasoning for vector indexing and chunking strategies (Days 7 & 8).`,
@@ -405,10 +424,13 @@ Turn-by-Turn Evaluations: ${evalSummaryText}
 Full Interview Transcript:
 ${transcriptText}
 
-Task: Write a rigorous, evidence-based candidate assessment report in JSON based on their ACTUAL interview answers.
-Format Requirements (Must be valid JSON):
+Task: Write a decision-grade candidate evaluation report in JSON.
+Output JSON schema:
 {
-  "score": integer between 0 and 100 reflecting overall answer accuracy, depth, and technical competence,
+  "technical": integer 0-100 (architectural depth, code correctness, tool mastery),
+  "reasoning": integer 0-100 (trade-off analysis, edge-case handling, logic),
+  "communication": integer 0-100 (clarity, structure, conciseness),
+  "problemSolving": integer 0-100 (debugging approach, practical constraints handling),
   "summary": "2-3 sentence executive assessment summarizing candidate technical strength and performance",
   "strengths": ["specific technical strength 1 referencing candidate's actual answers", "specific strength 2", "specific strength 3"],
   "gaps": ["specific technical gap 1 observed in their answers", "specific gap 2", "specific gap 3"],
@@ -420,8 +442,19 @@ Format Requirements (Must be valid JSON):
       try {
         const parsed = JSON.parse(jsonText);
         if (parsed.summary && Array.isArray(parsed.strengths) && Array.isArray(parsed.gaps) && Array.isArray(parsed.next)) {
+          const pTech = typeof parsed.technical === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.technical))) : tech;
+          const pReas = typeof parsed.reasoning === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.reasoning))) : reas;
+          const pComm = typeof parsed.communication === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.communication))) : comm;
+          const pProb = typeof parsed.problemSolving === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.problemSolving))) : prob;
+
+          const calculatedOverall = Math.round(pTech * 0.40 + pReas * 0.25 + pComm * 0.15 + pProb * 0.20);
+
           feedback = {
-            score: typeof parsed.score === 'number' ? Math.min(100, Math.max(0, Math.round(parsed.score))) : avgTurnScore,
+            score: calculatedOverall,
+            technical: pTech,
+            reasoning: pReas,
+            communication: pComm,
+            problemSolving: pProb,
             summary: parsed.summary,
             strengths: parsed.strengths.slice(0, 4),
             gaps: parsed.gaps.slice(0, 4),

@@ -5,6 +5,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import interviewRoutes from './routes/interviewRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import historyRoutes from './routes/historyRoutes.js';
+import performanceRoutes from './routes/performanceRoutes.js';
+import { seedPredefinedCandidates } from './services/seedService.js';
 
 dotenv.config();
 
@@ -19,13 +23,22 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB optional connection
+// MongoDB optional connection & Seed
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/intervai';
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('Connected to MongoDB database successfully.'))
-  .catch(err => console.log('MongoDB connection skipped/failed. Running with high-performance In-Memory Session Store:', err.message));
+  .then(() => {
+    console.log('Connected to MongoDB database successfully.');
+    seedPredefinedCandidates();
+  })
+  .catch(err => {
+    console.log('MongoDB connection skipped/failed. Running with high-performance In-Memory Session Store:', err.message);
+    seedPredefinedCandidates();
+  });
 
 // API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/history', historyRoutes);
+app.use('/api/performance', performanceRoutes);
 app.use('/api', interviewRoutes);
 
 // Root & Health Check

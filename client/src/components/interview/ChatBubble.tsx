@@ -54,9 +54,32 @@ export function ChatBubble({ message, index }: ChatBubbleProps) {
         )}
       >
         {message.content}
+
+        {!isAI && message.verdict && message.score !== undefined && (
+          <div className="mt-2 pt-2 border-t border-white/20 flex items-center justify-between text-xs">
+            <span className="text-white/80 font-medium">Gemini Turn Score:</span>
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded-full font-bold text-[10px]",
+                message.verdict === "STRONG"
+                  ? "bg-emerald-400/30 text-emerald-100"
+                  : message.verdict === "ADEQUATE"
+                  ? "bg-amber-400/30 text-amber-100"
+                  : "bg-rose-400/30 text-rose-100"
+              )}
+            >
+              {message.verdict} ({message.score}/100)
+            </span>
+          </div>
+        )}
+
         {message.topicDay && isAI && (
-          <div className="mt-2 pt-2 border-t border-border/40 text-xs text-muted-foreground">
-            Day {message.topicDay} topic
+          <div className="mt-2 pt-2 border-t border-border/40 text-xs text-muted-foreground flex justify-between items-center">
+            <span>Day {message.topicDay} topic</span>
+            <span className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Gemini AI
+            </span>
           </div>
         )}
       </div>

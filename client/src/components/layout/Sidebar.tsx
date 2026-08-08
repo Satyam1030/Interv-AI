@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/providers/AuthContext";
 import {
   LayoutDashboard,
   Mic,
@@ -17,12 +18,13 @@ import {
   ChevronRight,
   Sparkles,
   History,
+  LogOut,
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/interview", icon: Mic, label: "Interview" },
-  { href: "/interview/history", icon: History, label: "History" },
+  { href: "/history", icon: History, label: "History" },
   { href: "/performance", icon: BarChart3, label: "Performance" },
   { href: "/curriculum", icon: BookOpen, label: "Curriculum" },
   { href: "/leaderboard", icon: Trophy, label: "Leaderboard" },
@@ -33,6 +35,13 @@ const navItems = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
+  };
 
   return (
     <motion.aside
@@ -42,7 +51,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 py-5 border-b border-sidebar-border/60">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-glow-sm">
           <Sparkles className="w-4 h-4 text-white" />
         </div>
         <AnimatePresence>
@@ -109,6 +118,17 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Footer Profile & Logout */}
+      <div className="p-3 border-t border-sidebar-border/60">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-500/10 transition-colors"
+        >
+          <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
+          {!collapsed && <span>Log Out</span>}
+        </button>
+      </div>
 
       {/* Collapse toggle */}
       <button

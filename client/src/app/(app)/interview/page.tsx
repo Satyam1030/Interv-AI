@@ -50,6 +50,9 @@ export default function InterviewPage() {
   const [inlineKey, setInlineKey] = useState<string>("");
   const [savingKey, setSavingKey] = useState<boolean>(false);
 
+  const [lastTurnScore, setLastTurnScore] = useState<number | undefined>(undefined);
+  const [lastTurnVerdict, setLastTurnVerdict] = useState<"STRONG" | "ADEQUATE" | "WEAK" | undefined>(undefined);
+
   const feedRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -99,6 +102,7 @@ export default function InterviewPage() {
       setQuestionCount(response.questionCount || 1);
       if (response.coveredDays) setCoveredDays(response.coveredDays);
       if (response.currentTopicDay) setCurrentDay(response.currentTopicDay);
+      if (response.isGeminiActive !== undefined) setHasGeminiKey(response.isGeminiActive);
       setTimeout(() => setAvatarState("idle"), 1500);
     } catch (e) {
       setError("Failed to connect to the AI interviewer. Make sure the server is running.");
@@ -130,12 +134,32 @@ export default function InterviewPage() {
       await new Promise((r) => setTimeout(r, 300));
       setAvatarState("speaking");
 
-      const aiMsg: TurnMessage = {
-        role: "interviewer",
-        content: response.reply,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+      if (response.lastTurnScore !== undefined) setLastTurnScore(response.lastTurnScore);
+      if (response.lastTurnVerdict !== undefined) setLastTurnVerdict(response.lastTurnVerdict);
+      if (response.isGeminiActive !== undefined) setHasGeminiKey(response.isGeminiActive);
+
+      // Attach Gemini evaluation score & verdict to candidate's previous turn message
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastCandidateIdx = updated.findLastIndex((m) => m.role === "candidate");
+        if (lastCandidateIdx !== -1) {
+          updated[lastCandidateIdx] = {
+            ...updated[lastCandidateIdx],
+            score: response.lastTurnScore,
+            verdict: response.lastTurnVerdict,
+          };
+        }
+        return [
+          ...updated,
+          {
+            role: "interviewer",
+            content: response.reply,
+            timestamp: new Date().toISOString(),
+            topicDay: response.currentTopicDay,
+          },
+        ];
+      });
+
       setQuestionCount(response.questionCount || messages.length + 1);
       if (response.coveredDays) setCoveredDays(response.coveredDays);
       if (response.currentTopicDay) setCurrentDay(response.currentTopicDay);
@@ -146,6 +170,10 @@ export default function InterviewPage() {
         if (response.feedback) {
           setFeedback(response.feedback);
         }
+        const targetId = response.interviewId || sessionId;
+        setTimeout(() => {
+          router.push(`/interview/result/${targetId}`);
+        }, 1500);
       } else {
         setTimeout(() => setAvatarState("idle"), 1500);
       }
@@ -432,6 +460,8 @@ export default function InterviewPage() {
               currentDay={currentDay}
               questionCount={questionCount}
               curriculumDays={curriculum?.days ?? []}
+              lastTurnScore={lastTurnScore}
+              lastTurnVerdict={lastTurnVerdict}
             />
           </div>
         </div>

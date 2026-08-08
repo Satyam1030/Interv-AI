@@ -11,6 +11,8 @@ interface ProgressPanelProps {
   questionCount: number;
   maxQuestions?: number;
   curriculumDays?: CurriculumDay[];
+  lastTurnScore?: number;
+  lastTurnVerdict?: "STRONG" | "ADEQUATE" | "WEAK";
 }
 
 export function ProgressPanel({
@@ -19,6 +21,8 @@ export function ProgressPanel({
   questionCount,
   maxQuestions = 8,
   curriculumDays = [],
+  lastTurnScore,
+  lastTurnVerdict,
 }: ProgressPanelProps) {
   const progress = (questionCount / maxQuestions) * 100;
 
@@ -26,6 +30,10 @@ export function ProgressPanel({
     coveredDays.includes(d.day)
   );
   const currentTopic = curriculumDays.find((d) => d.day === currentDay);
+
+  const displayScore = lastTurnScore !== undefined
+    ? lastTurnScore
+    : Math.min(100, Math.round((coveredDays.length / Math.max(questionCount, 1)) * 85));
 
   return (
     <div className="flex flex-col gap-5 h-full">
@@ -46,7 +54,7 @@ export function ProgressPanel({
           />
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {maxQuestions - questionCount} questions remaining
+          {Math.max(0, maxQuestions - questionCount)} questions remaining
         </p>
       </div>
 
@@ -109,20 +117,36 @@ export function ProgressPanel({
 
       {/* Score Estimate */}
       <div className="glass rounded-2xl p-4">
-        <div className="flex items-center gap-2">
-          <Circle className="w-4 h-4 text-violet-500" />
-          <h3 className="text-sm font-semibold text-foreground">
-            Live Depth Score
-          </h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Circle className="w-4 h-4 text-violet-500" />
+            <h3 className="text-sm font-semibold text-foreground">
+              Gemini Live Score
+            </h3>
+          </div>
+          {lastTurnVerdict && (
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded-full font-bold text-[10px]",
+                lastTurnVerdict === "STRONG"
+                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                  : lastTurnVerdict === "ADEQUATE"
+                  ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                  : "bg-rose-500/20 text-rose-600 dark:text-rose-400"
+              )}
+            >
+              {lastTurnVerdict}
+            </span>
+          )}
         </div>
         <div className="mt-2 flex items-end gap-1">
           <span className="text-3xl font-bold text-gradient">
-            {Math.round((coveredDays.length / Math.max(questionCount, 1)) * 85)}
+            {displayScore}
           </span>
           <span className="text-sm text-muted-foreground mb-1">/100</span>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Based on topic coverage
+          Real-time turn evaluation by Gemini AI
         </p>
       </div>
     </div>

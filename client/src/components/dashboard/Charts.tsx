@@ -35,7 +35,8 @@ const radarData = [
   { topic: "Deploy", score: 83 },
 ];
 
-export function PerformanceAreaChart() {
+export function PerformanceAreaChart({ data = mockHistory }: { data?: { date: string; score: number }[] }) {
+  const chartData = data.length > 0 ? data : mockHistory;
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -44,13 +45,13 @@ export function PerformanceAreaChart() {
       className="glass rounded-2xl p-5"
     >
       <h3 className="text-sm font-semibold text-foreground mb-1">
-        Score Trend
+        Score Progression
       </h3>
       <p className="text-xs text-muted-foreground mb-4">
-        Interview performance over time
+        Interactive score trajectory across practice interviews
       </p>
       <ResponsiveContainer width="100%" height={180}>
-        <AreaChart data={mockHistory}>
+        <AreaChart data={chartData}>
           <defs>
             <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
