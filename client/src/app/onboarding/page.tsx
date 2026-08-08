@@ -11,6 +11,7 @@ import {
   submitOnboarding,
 } from "@/lib/api";
 import { useAuth } from "@/components/providers/AuthContext";
+import { useClerk } from "@clerk/nextjs";
 import {
   Sparkles,
   CheckCircle2,
@@ -24,6 +25,10 @@ import {
   Star,
   Check,
   RotateCcw,
+  Briefcase,
+  GraduationCap,
+  Clock,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +36,30 @@ type DayStatus = "COMPLETED" | "ATTEMPTED" | "SKIPPED" | "NOT_STARTED";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, login } = useAuth();
+  const { user, login, logout } = useAuth();
+  const { signOut } = useClerk();
 
   const [curriculum, setCurriculum] = useState<CurriculumData | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [name, setName] = useState("");
+  const [jobRole, setJobRole] = useState("AI Engineer");
+  const [yearsExperience, setYearsExperience] = useState(3);
+  const [education, setEducation] = useState("Computer Science");
+
+  const handleSignOut = async () => {
+    if (user?.authProvider === 'clerk') {
+      await signOut();
+    }
+    logout();
+    router.push("/login");
+  };
+
+  useEffect(() => {
+    if (user?.name && !name) setName(user.name);
+  }, [user]);
 
   // Status mapping per day
   const [statuses, setStatuses] = useState<Record<number, DayStatus>>({});
@@ -135,7 +158,7 @@ export default function OnboardingPage() {
     });
 
     try {
-      const res = await submitOnboarding({ items });
+      const res = await submitOnboarding({ items, name, jobRole, yearsExperience, education });
       if (user) {
         const token = localStorage.getItem("auth_token") || "";
         login(token, res.user, res.curriculumProgress);
@@ -175,6 +198,14 @@ export default function OnboardingPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="glass rounded-3xl p-8 text-center relative overflow-hidden">
+          <div className="absolute top-4 right-4 z-10">
+            <button 
+              onClick={handleSignOut}
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary rounded-xl transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -z-10" />
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-4">
             <Sparkles className="w-3.5 h-3.5" />
@@ -184,7 +215,7 @@ export default function OnboardingPage() {
             Your 31-Day AI Cohort Journey
           </h1>
           <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
-            Tell us what you&apos;ve completed in the AI Cohort so our Gemini AI interviewer can tailor every session to your tech stack.
+            Tell us what you&apos;ve completed in the AI Cohort so our OpenRouter AI interviewer can tailor every session to your tech stack.
           </p>
 
           {/* Quick stats summary bar */}
@@ -200,6 +231,92 @@ export default function OnboardingPage() {
             <div>
               <p className="text-2xl font-bold text-indigo-500">{skippedCount}</p>
               <p className="text-[11px] text-muted-foreground uppercase font-semibold">Skipped</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Details */}
+        <div className="glass rounded-3xl p-6 md:p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-600/20 flex items-center justify-center">
+              <UserCheck className="w-5 h-5 text-indigo-500" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Your Profile</h2>
+              <p className="text-sm text-muted-foreground">Tell us a bit about your background</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                Full Name
+              </label>
+              <div className="relative">
+                <UserCheck className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Jane Doe"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                Target Role
+              </label>
+              <div className="relative">
+                <Briefcase className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
+                <select
+                  value={jobRole}
+                  onChange={(e) => setJobRole(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none"
+                >
+                  <option value="AI Engineer">AI Engineer</option>
+                  <option value="Machine Learning Engineer">Machine Learning Engineer</option>
+                  <option value="Data Scientist">Data Scientist</option>
+                  <option value="Software Engineer">Software Engineer</option>
+                  <option value="Full Stack Developer">Full Stack Developer</option>
+                  <option value="Backend Developer">Backend Developer</option>
+                </select>
+                <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3.5 top-3.5 pointer-events-none" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                Years of Experience
+              </label>
+              <div className="relative">
+                <Clock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={yearsExperience}
+                  onChange={(e) => setYearsExperience(parseInt(e.target.value) || 0)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                Education
+              </label>
+              <div className="relative">
+                <GraduationCap className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
+                <input
+                  type="text"
+                  value={education}
+                  onChange={(e) => setEducation(e.target.value)}
+                  placeholder="e.g. Computer Science at Stanford"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
             </div>
           </div>
         </div>

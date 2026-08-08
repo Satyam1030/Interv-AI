@@ -49,7 +49,7 @@ export default function HistoryPage() {
             <h1 className="text-xl font-bold text-foreground">Interview History</h1>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Review your past Gemini AI practice sessions, turn evaluations, and feedback reports.
+            Review your past OpenRouter AI practice sessions, turn evaluations, and feedback reports.
           </p>
         </div>
         <Link
@@ -146,7 +146,7 @@ export default function HistoryPage() {
                       <Trophy className="w-4 h-4 text-amber-500" />
                       <span className="text-2xl font-bold text-foreground">{score}%</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground font-medium">Gemini Score</p>
+                    <p className="text-[10px] text-muted-foreground font-medium">OpenRouter Score</p>
                   </div>
 
                   <Link

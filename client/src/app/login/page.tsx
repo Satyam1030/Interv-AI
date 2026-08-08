@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { loginUser, fetchCandidates, Candidate } from "@/lib/api";
+import { SignInButton, useUser } from "@clerk/nextjs";
 import { useAuth } from "@/components/providers/AuthContext";
+import { loginUser, fetchCandidates, Candidate } from "@/lib/api";
 import {
   Sparkles,
   Shield,
@@ -13,8 +14,6 @@ import {
   ArrowRight,
   Brain,
   Target,
-  Mail,
-  Lock,
   UserCheck,
   ChevronRight,
 } from "lucide-react";
@@ -26,57 +25,51 @@ const floatingStats = [
   { label: "Avg Score", value: "82/100", icon: "⭐" },
 ];
 
+function ClerkLoginSection() {
+  const { isLoaded, isSignedIn } = useUser();
+  if (!isLoaded || isSignedIn) return null;
+
+  return (
+    <div className="space-y-3">
+      <SignInButton mode="modal" forceRedirectUrl="/dashboard" signUpForceRedirectUrl="/onboarding">
+        <button
+          type="button"
+          className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl bg-card border border-border/80 text-foreground text-sm font-semibold hover:bg-accent/10 transition-all shadow-sm group"
+        >
+          <div className="w-5 h-5 rounded-md bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold text-xs">
+            C
+          </div>
+          <span>Sign in via Clerk (Google / SSO / Email)</span>
+          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+        </button>
+      </SignInButton>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { user, login } = useAuth();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const isClerkValid = Boolean(
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "your_clerk_publishable_key_here" &&
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_")
+  );
 
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [showDemo, setShowDemo] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      if (!user.onboardingCompleted) {
-        router.replace("/onboarding");
-      } else {
-        router.replace("/dashboard");
-      }
-    }
-  }, [user, router]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCandidates()
       .then(setCandidates)
-      .catch(() => setCandidates([]));
+      .catch((err) => {
+        console.error("Failed to load candidates:", err);
+        setError("Failed to load Demo Candidates. Is the backend server running on port 5000?");
+      });
   }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError("Please provide both email and password.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await loginUser(email, password);
-      login(data.token, data.user, data.curriculumProgress);
-      if (!data.user.onboardingCompleted) {
-        router.push("/onboarding");
-      } else {
-        router.push("/dashboard");
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Authentication failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDemoLogin = async (c: Candidate) => {
     setLoading(true);
@@ -88,10 +81,16 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Demo login failed.");
-    } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      const target = !user.onboardingCompleted ? "/onboarding" : "/dashboard";
+      router.replace(target);
+    }
+  }, [user, router]);
 
   return (
     <div className="min-h-screen flex">
@@ -211,74 +210,8 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {error && (
-            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-medium">
-              {error}
-            </div>
-          )}
-
-          {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Password
-                </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-primary hover:underline font-medium"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3.5" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-semibold shadow-glow hover:opacity-95 transition-all disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Authenticating...
-                </>
-              ) : (
-                <>
-                  Sign In
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </form>
+          {/* Clerk SSO Sign In Button */}
+          {isClerkValid && <ClerkLoginSection />}
 
           {/* Quick Demo Login Drawer */}
           {candidates.length > 0 && (
@@ -318,14 +251,17 @@ export default function LoginPage() {
             </div>
           )}
 
+          {error && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-sm font-medium text-center">
+              {error}
+            </div>
+          )}
+
           {/* Create account link */}
           <div className="text-center pt-2">
             <p className="text-xs text-muted-foreground">
               Don&apos;t have an account?{" "}
-              <Link
-                href="/register"
-                className="text-primary font-semibold hover:underline"
-              >
+              <Link href="/register" className="text-primary font-semibold hover:underline">
                 Create Account & Onboard
               </Link>
             </p>

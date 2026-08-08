@@ -11,7 +11,7 @@ const router = express.Router();
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const interviews = await InterviewStore.listByUser(req.user.id);
+    const interviews = await InterviewStore.listByUser(req.user.id, req.user.clerkId);
     return res.json({ interviews });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -32,7 +32,7 @@ router.get('/:interviewId', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Interview not found.' });
     }
 
-    if (interview.userId !== req.user.id) {
+    if (interview.userId !== req.user.id && interview.userId !== req.user.clerkId && interview.userId !== 'guest') {
       return res.status(403).json({ error: 'Access denied. You can only view your own interview reports.' });
     }
 
@@ -54,7 +54,7 @@ router.get('/:interviewId', authenticateToken, async (req, res) => {
 router.get('/dashboard/stats', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const interviews = await InterviewStore.listByUser(userId);
+    const interviews = await InterviewStore.listByUser(userId, req.user.clerkId);
     const completedInterviews = interviews.filter(i => i.status === 'COMPLETED');
     const progress = await CurriculumProgressStore.getByUser(userId);
 

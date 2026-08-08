@@ -39,10 +39,10 @@ router.post('/interview', async (req, res) => {
   try {
     const { sessionId, candidate, message, apiKey } = req.body;
 
-    // Dynamically update GEMINI_API_KEY if passed in headers or body
-    const reqKey = apiKey || req.headers['x-gemini-api-key'];
-    if (reqKey && typeof reqKey === 'string' && reqKey.trim()) {
-      process.env.GEMINI_API_KEY = reqKey.trim();
+    // Dynamically update OPENROUTER_API_KEY if passed in headers or body
+    const reqKey = apiKey || req.headers['x-openrouter-api-key'];
+    if (reqKey && typeof reqKey === 'string') {
+      process.env.OPENROUTER_API_KEY = reqKey.trim();
     }
 
     if (!sessionId) {
@@ -138,7 +138,7 @@ router.post('/interview', async (req, res) => {
       return res.json({
         reply: result.reply,
         done: result.done,
-        isGeminiActive: result.isGeminiActive,
+        isOpenRouterActive: result.isOpenRouterActive,
         coveredDays: session.coveredDays,
         currentTopicDay: session.currentTopicDay,
         questionCount: session.questionCount,
@@ -152,7 +152,7 @@ router.post('/interview', async (req, res) => {
       return res.json({
         reply: 'Interview is already completed.',
         done: true,
-        isGeminiActive: InterviewAgentService.isGeminiAvailable(),
+        isOpenRouterActive: InterviewAgentService.isOpenRouterAvailable(),
         coveredDays: session.coveredDays,
         currentTopicDay: session.currentTopicDay,
         questionCount: session.questionCount,
@@ -196,7 +196,7 @@ router.post('/interview', async (req, res) => {
       return res.json({
         reply: result.reply,
         done: true,
-        isGeminiActive: result.isGeminiActive,
+        isOpenRouterActive: result.isOpenRouterActive,
         coveredDays: session.coveredDays,
         currentTopicDay: session.currentTopicDay,
         questionCount: session.questionCount,
@@ -210,7 +210,7 @@ router.post('/interview', async (req, res) => {
     return res.json({
       reply: result.reply,
       done: false,
-      isGeminiActive: result.isGeminiActive,
+      isOpenRouterActive: result.isOpenRouterActive,
       coveredDays: session.coveredDays,
       currentTopicDay: session.currentTopicDay,
       questionCount: session.questionCount,
@@ -398,7 +398,7 @@ const getInterviewResultHandler = async (req, res) => {
       return res.status(404).json({ error: 'Interview result not found.' });
     }
 
-    if (req.user && interview.userId !== req.user.id) {
+    if (req.user && interview.userId !== req.user.id && interview.userId !== req.user.clerkId && interview.userId !== 'guest') {
       return res.status(403).json({ error: 'Access denied. You can only view your own interview results.' });
     }
 
@@ -530,18 +530,18 @@ router.post('/test-suite/run', async (req, res) => {
 });
 
 /**
- * Get Gemini API Key configuration status
+ * Get OpenRouter API Key configuration status
  */
 router.get('/config', (req, res) => {
-  const hasKey = Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+  const hasKey = Boolean(process.env.OPENROUTER_API_KEY);
   return res.json({
-    hasGeminiKey: hasKey,
-    model: 'gemini-2.0-flash'
+    hasOpenRouterKey: hasKey,
+    model: 'inclusionai/ling-3.0-tiny:free'
   });
 });
 
 /**
- * Set or update Gemini API Key dynamically from UI
+ * Set or update OpenRouter API Key dynamically from UI
  */
 router.post('/config/key', (req, res) => {
   try {
@@ -550,16 +550,24 @@ router.post('/config/key', (req, res) => {
       return res.status(400).json({ error: 'apiKey string is required' });
     }
     const cleanKey = apiKey.trim();
-    process.env.GEMINI_API_KEY = cleanKey;
+    process.env.OPENROUTER_API_KEY = cleanKey;
 
     try {
-      const envContent = `PORT=${process.env.PORT || 5000}\nGEMINI_API_KEY=${cleanKey}\n`;
-      fs.writeFileSync(envPath, envContent, 'utf8');
+      let envContent = '';
+      if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, 'utf8');
+      }
+      if (envContent.includes('OPENROUTER_API_KEY=')) {
+        envContent = envContent.replace(/OPENROUTER_API_KEY=.*/, `OPENROUTER_API_KEY=${cleanKey}`);
+      } else {
+        envContent += `\nOPENROUTER_API_KEY=${cleanKey}\n`;
+      }
+      fs.writeFileSync(envPath, envContent.trim() + '\n', 'utf8');
     } catch (e) {
       console.warn('Could not persist .env file:', e.message);
     }
 
-    return res.json({ success: true, hasGeminiKey: true, message: 'Gemini API Key updated successfully.' });
+    return res.json({ success: true, hasOpenRouterKey: true, message: 'OpenRouter API Key updated successfully.' });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

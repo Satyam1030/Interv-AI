@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,47 +33,47 @@ function cleanJsonString(text) {
 }
 
 /**
- * Call Gemini AI with automatic model fallback and JSON parsing helper
+ * Call OpenRouter API using inclusionai/ling-3.0-tiny:free
  */
-async function callGemini(prompt, isJson = false) {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+async function callOpenRouter(prompt, isJson = false) {
+  const apiKey = process.env.OPENROUTER_API_KEY || '';
   if (!apiKey) {
     return null;
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  // Try available Gemini models in order of performance and compatibility
-  const modelsToTry = [
-    'gemini-3-flash-preview',
-    'gemini-3.1-flash-lite',
-    'gemini-3.6-flash',
-    'gemini-2.5-pro',
-    'gemini-2.0-flash',
-    'gemini-flash-latest'
-  ];
+  const enhancedPrompt = isJson ? prompt + '\n\nIMPORTANT: Respond ONLY with valid JSON.' : prompt;
 
-  for (const modelName of modelsToTry) {
-    try {
-      const config = isJson ? { generationConfig: { responseMimeType: 'application/json' } } : {};
-      const model = genAI.getGenerativeModel({ model: modelName, ...config });
-      const result = await model.generateContent(prompt);
-      const rawText = result.response.text();
-      const text = cleanJsonString(rawText);
-      if (text) return text;
-    } catch (err) {
-      console.warn(`[Gemini API] Notice for model ${modelName} (JSON config):`, err.message);
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(isJson ? `${prompt}\n\nIMPORTANT: Return ONLY a valid raw JSON object. Do not include markdown codeblocks or extra commentary.` : prompt);
-        const rawText = result.response.text();
-        const text = cleanJsonString(rawText);
-        if (text) return text;
-      } catch (err2) {
-        console.warn(`[Gemini API] Notice for model ${modelName} (Standard fallback):`, err2.message);
-      }
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'IntervAI'
+      },
+      body: JSON.stringify({
+        model: 'inclusionai/ling-3.0-tiny:free',
+        messages: [{ role: 'user', content: enhancedPrompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`OpenRouter API error: ${res.status} ${errorText}`);
     }
+
+    const data = await res.json();
+    const rawText = data.choices?.[0]?.message?.content || '';
+    
+    if (isJson) {
+      return cleanJsonString(rawText) || rawText;
+    }
+    return rawText;
+  } catch (err) {
+    console.warn(`[OpenRouter API] Error:`, err.message);
+    return null;
   }
-  return null;
 }
 
 export class InterviewAgentService {
@@ -90,8 +89,8 @@ export class InterviewAgentService {
     return candidatesData.candidates.find(c => c.member.id === id) || null;
   }
 
-  static isGeminiAvailable() {
-    return Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+  static isOpenRouterAvailable() {
+    return Boolean(process.env.OPENROUTER_API_KEY);
   }
 
   /**
@@ -142,7 +141,7 @@ export class InterviewAgentService {
   }
 
   /**
-   * Main turn processing loop powered by Gemini AI
+   * Main turn processing loop powered by OpenRouter AI
    */
   static async processTurn(session, userMessage) {
     const candidate = session.candidate;
@@ -154,7 +153,7 @@ export class InterviewAgentService {
 
     const candidateName = candidate.member?.name || 'Candidate';
     const jobRole = candidate.member?.jobRole || 'AI Engineer';
-    const isGeminiActive = this.isGeminiAvailable();
+    const isOpenRouterActive = this.isOpenRouterAvailable();
 
     // ───────────────────────────────────────────────────────────────────────────
     // Turn 1: Opening Greeting & Initial Technical Question
@@ -180,7 +179,7 @@ Objectives: ${JSON.stringify(firstDayInfo.objectives)}
 
 Task: Generate a warm, crisp, highly technical opening interview question. Acknowledge their role as a ${jobRole}, set an engaging professional tone, and ask specifically how they implemented Day ${firstDayNum} concepts in their cohort projects. Do not use generic placeholders. Keep it under 3 concise sentences.`;
 
-      const aiOpening = await callGemini(prompt);
+      const aiOpening = await callOpenRouter(prompt);
       if (aiOpening) {
         firstQuestion = aiOpening;
       }
@@ -198,7 +197,7 @@ Task: Generate a warm, crisp, highly technical opening interview question. Ackno
       return {
         reply: firstQuestion,
         done: false,
-        isGeminiActive,
+        isOpenRouterActive,
         session
       };
     }
@@ -212,7 +211,7 @@ Task: Generate a warm, crisp, highly technical opening interview question. Ackno
     let topicQuestionCount = session.topicQuestionCount || 1;
     const currentDayInfo = this.getDayDetails(currentTopicDay);
 
-    // Step 1: Real-time Evaluation of candidate's answer with Gemini
+    // Step 1: Real-time Evaluation of candidate's answer with OpenRouter
     const evalPrompt = `You are evaluating a candidate's response during a technical AI engineering interview.
 Candidate: ${candidateName} (${jobRole})
 Curriculum Topic: Day ${currentTopicDay} (${currentDayInfo.title})
@@ -230,8 +229,8 @@ Evaluate their technical answer thoroughly and output JSON:
 
     let turnEval = { score: 78, verdict: 'ADEQUATE', feedback: 'Provided reasonable technical explanation.' };
     
-    // Simple heuristic calculation when Gemini API key is absent
-    if (!isGeminiActive) {
+    // Simple heuristic calculation when OpenRouter API key is absent
+    if (!isOpenRouterActive) {
       const len = userMessage.trim().length;
       if (len > 180) {
         turnEval = { score: 88, verdict: 'STRONG', feedback: 'Detailed response explaining key architectural choices.' };
@@ -241,7 +240,7 @@ Evaluate their technical answer thoroughly and output JSON:
         turnEval = { score: 62, verdict: 'WEAK', feedback: 'Brief response; missing operational details and trade-offs.' };
       }
     } else {
-      const evalResultText = await callGemini(evalPrompt, true);
+      const evalResultText = await callOpenRouter(evalPrompt, true);
       if (evalResultText) {
         try {
           const parsedEval = JSON.parse(evalResultText);
@@ -253,7 +252,7 @@ Evaluate their technical answer thoroughly and output JSON:
             };
           }
         } catch (e) {
-          console.warn('[Gemini API] Turn evaluation JSON parse notice, using score fallback');
+          console.warn('[OpenRouter API] Turn evaluation JSON parse notice, using score fallback');
         }
       }
     }
@@ -306,7 +305,7 @@ Evaluate their technical answer thoroughly and output JSON:
       return {
         reply: closingReply,
         done: true,
-        isGeminiActive,
+        isOpenRouterActive,
         lastTurnScore: turnEval.score,
         lastTurnVerdict: turnEval.verdict,
         feedback,
@@ -314,7 +313,7 @@ Evaluate their technical answer thoroughly and output JSON:
       };
     }
 
-    // Step 4: Generate next question using Gemini AI
+    // Step 4: Generate next question using OpenRouter AI
     const nextDayInfo = this.getDayDetails(currentTopicDay);
     let nextQuestion = '';
 
@@ -334,7 +333,7 @@ Instructions:
 2. ${topicQuestionCount > 1 ? `Ask a targeted follow-up probing deeper into edge cases, latency constraints, failure modes, or security considerations for ${nextDayInfo.tools?.[0] || 'this architecture'}.` : `Transition to Day ${currentTopicDay} (${nextDayInfo.title}) and ask a practical engineering question about ${nextDayInfo.objectives[0] || 'their implementation'}.`}
 3. Keep the prompt natural, direct, and technical. Do not use bullet points or meta-commentary.`;
 
-    const aiNextQuestion = await callGemini(`${systemPrompt}\n\nRecent Dialogue:\n${historyPrompt}\n\nInterviewer Next Question:`);
+    const aiNextQuestion = await callOpenRouter(`${systemPrompt}\n\nRecent Dialogue:\n${historyPrompt}\n\nInterviewer Next Question:`);
     if (aiNextQuestion) {
       nextQuestion = aiNextQuestion;
     } else {
@@ -360,7 +359,7 @@ Instructions:
     return {
       reply: nextQuestion,
       done: false,
-      isGeminiActive,
+      isOpenRouterActive,
       lastTurnScore: turnEval.score,
       lastTurnVerdict: turnEval.verdict,
       session
@@ -437,7 +436,7 @@ Output JSON schema:
   "next": ["actionable curriculum recommendation 1", "actionable curriculum recommendation 2", "actionable curriculum recommendation 3"]
 }`;
 
-    const jsonText = await callGemini(prompt, true);
+    const jsonText = await callOpenRouter(prompt, true);
     if (jsonText) {
       try {
         const parsed = JSON.parse(jsonText);
@@ -462,7 +461,7 @@ Output JSON schema:
           };
         }
       } catch (err) {
-        console.warn('[Gemini API] Feedback JSON parsing notice, using baseline feedback score:', err.message);
+        console.warn('[OpenRouter API] Feedback JSON parsing notice, using baseline feedback score:', err.message);
       }
     }
 

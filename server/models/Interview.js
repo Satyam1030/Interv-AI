@@ -101,17 +101,18 @@ export class InterviewStore {
     return memoryInterviews.get(id) || null;
   }
 
-  static async listByUser(userId) {
+  static async listByUser(userId, clerkId = null) {
+    const userIds = [userId, clerkId].filter(Boolean);
     if (mongoose.connection.readyState === 1 && InterviewModel) {
       try {
-        const docs = await InterviewModel.find({ userId }).sort({ createdAt: -1 }).lean();
+        const docs = await InterviewModel.find({ userId: { $in: userIds } }).sort({ createdAt: -1 }).lean();
         if (docs) return docs;
       } catch (e) {
         console.warn('MongoDB Interview listByUser failed:', e.message);
       }
     }
     return Array.from(memoryInterviews.values())
-      .filter(i => i.userId === userId)
+      .filter(i => userIds.includes(i.userId))
       .sort((a, b) => new Date(b.createdAt || b.startedAt) - new Date(a.createdAt || a.startedAt));
   }
 

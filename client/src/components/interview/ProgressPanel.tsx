@@ -121,7 +121,7 @@ export function ProgressPanel({
           <div className="flex items-center gap-2">
             <Circle className="w-4 h-4 text-violet-500" />
             <h3 className="text-sm font-semibold text-foreground">
-              Gemini Live Score
+              OpenRouter Score
             </h3>
           </div>
           {lastTurnVerdict && (
@@ -146,7 +146,7 @@ export function ProgressPanel({
           <span className="text-sm text-muted-foreground mb-1">/100</span>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Real-time turn evaluation by Gemini AI
+          Real-time turn evaluation by OpenRouter AI
         </p>
       </div>
     </div>

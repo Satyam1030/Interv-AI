@@ -11,7 +11,7 @@ import {
   startInterview,
   sendMessage,
   getApiConfig,
-  setGeminiKey,
+  setOpenRouterKey,
   CurriculumData,
 } from "@/lib/api";
 import { AIAvatar } from "@/components/interview/AIAvatar";
@@ -46,7 +46,7 @@ export default function InterviewPage() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [started, setStarted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasGeminiKey, setHasGeminiKey] = useState<boolean>(false);
+  const [hasOpenRouterKey, sethasOpenRouterKey] = useState<boolean>(false);
   const [inlineKey, setInlineKey] = useState<string>("");
   const [savingKey, setSavingKey] = useState<boolean>(false);
 
@@ -59,7 +59,7 @@ export default function InterviewPage() {
   // Check API config
   useEffect(() => {
     getApiConfig()
-      .then((cfg) => setHasGeminiKey(cfg.hasGeminiKey))
+      .then((cfg) => sethasOpenRouterKey(cfg.hasOpenRouterKey))
       .catch(console.error);
   }, []);
 
@@ -102,7 +102,7 @@ export default function InterviewPage() {
       setQuestionCount(response.questionCount || 1);
       if (response.coveredDays) setCoveredDays(response.coveredDays);
       if (response.currentTopicDay) setCurrentDay(response.currentTopicDay);
-      if (response.isGeminiActive !== undefined) setHasGeminiKey(response.isGeminiActive);
+      if (response.isOpenRouterActive !== undefined) sethasOpenRouterKey(response.isOpenRouterActive);
       setTimeout(() => setAvatarState("idle"), 1500);
     } catch (e) {
       setError("Failed to connect to the AI interviewer. Make sure the server is running.");
@@ -136,9 +136,9 @@ export default function InterviewPage() {
 
       if (response.lastTurnScore !== undefined) setLastTurnScore(response.lastTurnScore);
       if (response.lastTurnVerdict !== undefined) setLastTurnVerdict(response.lastTurnVerdict);
-      if (response.isGeminiActive !== undefined) setHasGeminiKey(response.isGeminiActive);
+      if (response.isOpenRouterActive !== undefined) sethasOpenRouterKey(response.isOpenRouterActive);
 
-      // Attach Gemini evaluation score & verdict to candidate's previous turn message
+      // Attach OpenRouter evaluation score & verdict to candidate's previous turn message
       setMessages((prev) => {
         const updated = [...prev];
         const lastCandidateIdx = updated.findLastIndex((m) => m.role === "candidate");
@@ -324,12 +324,12 @@ export default function InterviewPage() {
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <span className={cn(
                           "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border",
-                          hasGeminiKey
+                          hasOpenRouterKey
                             ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
                             : "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
                         )}>
                           <Sparkles className="w-3.5 h-3.5" />
-                          {hasGeminiKey ? "Gemini 2.0 Flash Connected" : "Gemini API Key Optional"}
+                          {hasOpenRouterKey ? "OpenRouter 2.0 Flash Connected" : "OpenRouter API Key Optional"}
                         </span>
                       </div>
 
@@ -343,18 +343,18 @@ export default function InterviewPage() {
                         cohort missions, evaluate your technical depth per turn, and output a full evaluation scorecard.
                       </p>
 
-                      {!hasGeminiKey && (
+                      {!hasOpenRouterKey && (
                         <div className="mb-5 p-3 rounded-xl bg-card border border-border/80 text-left">
                           <p className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
                             <Key className="w-3.5 h-3.5 text-amber-500" />
-                            Add Gemini API Key for Live LLM Responses:
+                            Add OpenRouter API Key for Live LLM Responses:
                           </p>
                           <div className="flex gap-2">
                             <input
                               type="password"
                               value={inlineKey}
                               onChange={(e) => setInlineKey(e.target.value)}
-                              placeholder="Paste Google Gemini API Key..."
+                              placeholder="Paste OpenRouter API Key..."
                               className="flex-1 text-xs px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                             <button
@@ -362,8 +362,8 @@ export default function InterviewPage() {
                               onClick={async () => {
                                 setSavingKey(true);
                                 try {
-                                  await setGeminiKey(inlineKey.trim());
-                                  setHasGeminiKey(true);
+                                  await setOpenRouterKey(inlineKey.trim());
+                                  sethasOpenRouterKey(true);
                                   setInlineKey("");
                                 } catch (e) {
                                   console.error(e);

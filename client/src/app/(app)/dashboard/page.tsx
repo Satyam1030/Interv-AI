@@ -80,7 +80,7 @@ export default function DashboardPage() {
   const latestScore = summary?.latestScore ?? 0;
 
   // Calculate readiness score strictly from database progress & average
-  const completedDaysCount = curriculum?.days.filter((d) =>
+  const completedDaysCount = curriculum?.days?.filter((d) =>
     topicPerformance.some((tp) => tp.curriculumDay === d.day && tp.averageScore >= 75)
   ).length || 0;
 
@@ -147,43 +147,6 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Metrics Grid (Identical to Performance Page) (Section 11) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Total Score"
-          value={totalScore}
-          subtitle={`cumulative across ${totalInterviews} sessions`}
-          icon={<Activity className="w-5 h-5" />}
-          gradient="from-indigo-500 to-blue-600"
-          delay={0}
-        />
-        <MetricCard
-          title="Average Score"
-          value={avgScore}
-          suffix="%"
-          subtitle="database average"
-          icon={<Brain className="w-5 h-5" />}
-          gradient="from-violet-500 to-purple-600"
-          delay={0.08}
-        />
-        <MetricCard
-          title="Best Score"
-          value={bestScore}
-          suffix="%"
-          subtitle="personal record"
-          icon={<Trophy className="w-5 h-5" />}
-          gradient="from-amber-500 to-orange-600"
-          delay={0.16}
-        />
-        <MetricCard
-          title="Total Interviews"
-          value={totalInterviews}
-          subtitle="completed sessions"
-          icon={<Target className="w-5 h-5" />}
-          gradient="from-emerald-500 to-teal-600"
-          delay={0.24}
-        />
-      </div>
-
       {/* Charts & Latest Interview Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Compact Performance Progression Chart (Section 13) */}

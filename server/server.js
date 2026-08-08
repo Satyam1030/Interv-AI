@@ -4,11 +4,20 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
+import dns from 'dns';
+import fs from 'fs';
 import interviewRoutes from './routes/interviewRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import historyRoutes from './routes/historyRoutes.js';
 import performanceRoutes from './routes/performanceRoutes.js';
 import { seedPredefinedCandidates } from './services/seedService.js';
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  // Ignore fallback if unsupported
+}
 
 dotenv.config();
 
@@ -23,15 +32,21 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB optional connection & Seed
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/intervai';
+// MongoDB Connection & Data Seeding
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/intervai';
+const maskedURI = MONGO_URI.replace(/:([^:@]+)@/, ':****@');
+
+if (process.env.MONGODB_URI && process.env.MONGODB_URI !== 'your_mongodb_connection_string_here') {
+  console.log(`Attempting connection to MongoDB database...`);
+}
+
 mongoose.connect(MONGO_URI)
   .then(() => {
-    console.log('Connected to MongoDB database successfully.');
+    console.log('✅ Connected to MongoDB database successfully.');
     seedPredefinedCandidates();
   })
   .catch(err => {
-    console.log('MongoDB connection skipped/failed. Running with high-performance In-Memory Session Store:', err.message);
+    console.warn(`⚠️ MongoDB connection warning (${err.message}). Defaulting to In-Memory Session Store.`);
     seedPredefinedCandidates();
   });
 
@@ -40,6 +55,17 @@ app.use('/api/auth', authRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api', interviewRoutes);
+
+app.get('/api/demo/candidates', (req, res) => {
+  try {
+    const candidatesPath = path.join(__dirname, 'data/candidates.json');
+    if (!fs.existsSync(candidatesPath)) return res.json({ candidates: [] });
+    const data = JSON.parse(fs.readFileSync(candidatesPath, 'utf8'));
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch candidates' });
+  }
+});
 
 // Root & Health Check
 app.get('/health', (req, res) => {

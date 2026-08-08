@@ -5,9 +5,12 @@ const memoryUsers = new Map();
 
 const userSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
+  clerkId: { type: String, unique: true, sparse: true },
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  passwordHash: { type: String, required: true },
+  passwordHash: { type: String, required: false },
+  imageUrl: { type: String },
+  authProvider: { type: String, default: 'local' },
   jobRole: { type: String, default: 'AI Engineer' },
   yearsExperience: { type: Number, default: 3 },
   education: { type: String, default: 'Computer Science' },
@@ -41,13 +44,46 @@ export class UserStore {
   static async findById(id) {
     if (mongoose.connection.readyState === 1 && UserModel) {
       try {
-        const doc = await UserModel.findOne({ id });
+        const doc = await UserModel.findOne({ $or: [{ id }, { clerkId: id }] });
         if (doc) return doc.toObject();
       } catch (err) {
         console.warn('MongoDB User findById failed, using memory fallback:', err.message);
       }
     }
     return memoryUsers.get(id) || null;
+  }
+
+  static async syncClerkUser({ clerkId, email, name, imageUrl }) {
+    const cleanEmail = email.toLowerCase().trim();
+    let existing = await this.findByEmail(cleanEmail);
+
+    if (existing) {
+      const updates = {
+        clerkId,
+        name: (existing.name === 'Clerk User' || !existing.name) ? (name || 'Clerk User') : existing.name,
+        imageUrl: imageUrl || existing.imageUrl,
+        authProvider: 'clerk',
+        updatedAt: new Date()
+      };
+      return await this.update(existing.id, updates);
+    }
+
+    const newUser = {
+      id: clerkId || `USR-${Date.now().toString(36)}`,
+      clerkId,
+      name: name || 'Clerk User',
+      email: cleanEmail,
+      imageUrl: imageUrl || '',
+      authProvider: 'clerk',
+      jobRole: 'AI Engineer',
+      yearsExperience: 3,
+      education: 'Computer Science',
+      onboardingCompleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    return await this.create(newUser);
   }
 
   static async create(userData) {
@@ -79,11 +115,11 @@ export class UserStore {
     if (!user) return null;
 
     user = { ...user, ...updates, updatedAt: new Date() };
-    memoryUsers.set(id, user);
+    memoryUsers.set(user.id, user);
 
     if (mongoose.connection.readyState === 1 && UserModel) {
       try {
-        await UserModel.findOneAndUpdate({ id }, updates, { new: true });
+        await UserModel.findOneAndUpdate({ $or: [{ id }, { clerkId: id }] }, updates, { new: true });
       } catch (err) {
         console.warn('MongoDB User update failed, updated in memory:', err.message);
       }

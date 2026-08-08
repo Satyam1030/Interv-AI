@@ -7,6 +7,34 @@ import { authenticateToken, generateToken } from '../middleware/authMiddleware.j
 
 const router = express.Router();
 
+
+
+/**
+ * PUT /api/auth/profile
+ */
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { name, jobRole, yearsExperience, education } = req.body;
+    const userId = req.user.id;
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (jobRole) updateData.jobRole = jobRole;
+    if (yearsExperience !== undefined) updateData.yearsExperience = Number(yearsExperience);
+    if (education) updateData.education = education;
+
+    const updatedUser = await UserStore.update(userId, updateData);
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { passwordHash: _, ...safeUser } = updatedUser;
+    return res.json({ success: true, user: safeUser });
+  } catch (err) {
+    console.error('Error in /api/auth/profile:', err);
+    return res.status(500).json({ error: 'Internal Server Error', message: err.message });
+  }
+});
+
 /**
  * POST /api/auth/register
  */
@@ -156,18 +184,45 @@ router.get('/me', authenticateToken, async (req, res) => {
 });
 
 /**
+ * PUT /api/auth/profile
+ * Updates user profile details
+ */
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { name, jobRole, yearsExperience, education } = req.body;
+    
+    const updatedUser = await UserStore.update(req.user.id, {
+      name: name || req.user.name,
+      jobRole: jobRole || req.user.jobRole,
+      yearsExperience: yearsExperience ? Number(yearsExperience) : req.user.yearsExperience,
+      education: education || req.user.education
+    });
+
+    const { passwordHash: _, ...safeUser } = updatedUser;
+    return res.json({
+      success: true,
+      user: safeUser
+    });
+  } catch (err) {
+    console.error('Error in /api/auth/profile:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/auth/onboarding
  * Receives array of curriculum day statuses & learning signals from onboarding wizard
  */
 router.post('/onboarding', authenticateToken, async (req, res) => {
   try {
-    const { items, jobRole, yearsExperience, education } = req.body;
+    const { items, name, jobRole, yearsExperience, education } = req.body;
     if (!Array.isArray(items)) {
       return res.status(400).json({ error: 'items array is required' });
     }
 
     const updatedUser = await UserStore.update(req.user.id, {
       onboardingCompleted: true,
+      name: name || req.user.name,
       jobRole: jobRole || req.user.jobRole,
       yearsExperience: yearsExperience ? Number(yearsExperience) : req.user.yearsExperience,
       education: education || req.user.education
@@ -183,6 +238,35 @@ router.post('/onboarding', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error('Error in /api/auth/onboarding:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/auth/clerk-sync
+ * Synchronizes user authentication details from Clerk into MongoDB database
+ */
+router.post('/clerk-sync', async (req, res) => {
+  try {
+    const { clerkId, email, name, imageUrl } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'email is required' });
+    }
+
+    const user = await UserStore.syncClerkUser({ clerkId, email, name, imageUrl });
+    const token = generateToken(user);
+    const progress = await CurriculumProgressStore.getByUser(user.id);
+
+    const { passwordHash: _, ...safeUser } = user;
+    return res.json({
+      success: true,
+      token,
+      user: safeUser,
+      curriculumProgress: progress
+    });
+  } catch (err) {
+    console.error('Error in /api/auth/clerk-sync:', err);
     return res.status(500).json({ error: err.message });
   }
 });

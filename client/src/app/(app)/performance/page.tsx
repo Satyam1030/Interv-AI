@@ -167,43 +167,6 @@ export default function PerformancePage() {
       </motion.div>
 
       {/* Top 4 Primary Metric Cards (Sections 2 & 3) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Total Score"
-          value={totalScore}
-          subtitle={`cumulative across ${total} interviews`}
-          icon={<Activity className="w-5 h-5" />}
-          gradient="from-indigo-500 to-blue-600"
-          delay={0}
-        />
-        <MetricCard
-          title="Average Score"
-          value={avgScore}
-          suffix="%"
-          subtitle="database average"
-          icon={<Brain className="w-5 h-5" />}
-          gradient="from-violet-500 to-purple-600"
-          delay={0.07}
-        />
-        <MetricCard
-          title="Best Score"
-          value={bestScore}
-          suffix="%"
-          subtitle="personal record"
-          icon={<Trophy className="w-5 h-5" />}
-          gradient="from-amber-500 to-orange-600"
-          delay={0.14}
-        />
-        <MetricCard
-          title="Total Interviews"
-          value={total}
-          subtitle="completed sessions"
-          icon={<Target className="w-5 h-5" />}
-          gradient="from-emerald-500 to-teal-600"
-          delay={0.21}
-        />
-      </div>
-
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <PerformanceAreaChart data={scoreHistory} />

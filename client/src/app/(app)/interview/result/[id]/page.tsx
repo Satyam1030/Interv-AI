@@ -220,7 +220,7 @@ export default function InterviewResultPage() {
         </motion.div>
       )}
 
-      {/* Gemini Executive Feedback */}
+      {/* OpenRouter Executive Feedback */}
       {fb && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}

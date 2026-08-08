@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Candidate } from "@/lib/api";
+import { updateProfile } from "@/lib/api";
+import { useAuth } from "@/components/providers/AuthContext";
 import { getInitials, cn } from "@/lib/utils";
 import {
   User,
@@ -16,6 +17,9 @@ import {
   Brain,
   Star,
   Award,
+  Edit2,
+  Save,
+  X
 } from "lucide-react";
 
 const badges = [
@@ -28,20 +32,56 @@ const badges = [
 ];
 
 export default function ProfilePage() {
-  const router = useRouter();
-  const [candidate, setCandidate] = useState<Candidate | null>(null);
+  const { user, curriculumProgress, token, login } = useAuth();
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    jobRole: "",
+    yearsExperience: 0,
+    education: ""
+  });
 
   useEffect(() => {
-    const stored = localStorage.getItem("selectedCandidate");
-    if (!stored) { router.replace("/login"); return; }
-    setCandidate(JSON.parse(stored));
-  }, [router]);
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        jobRole: user.jobRole || "",
+        yearsExperience: user.yearsExperience || 0,
+        education: user.education || ""
+      });
+    }
+  }, [user]);
 
-  if (!candidate) return null;
+  if (!user) return null;
 
-  const completed = candidate.signals?.missionsCompleted ?? 0;
-  const firstTry = candidate.signals?.missionsFirstTry ?? 0;
-  const commitDays = candidate.signals?.commitDays ?? 0;
+  const completed = curriculumProgress.filter(p => p.status === "COMPLETED").length;
+  const firstTry = curriculumProgress.filter(p => p.status === "COMPLETED" && (p.attempts || 1) === 1).length;
+  const commitDays = completed;
+  
+  const missions = curriculumProgress.map(p => ({
+    day: p.curriculumDay,
+    passed: p.status === "COMPLETED",
+    skipped: p.status === "SKIPPED",
+    attempts: p.attempts || 1
+  }));
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const res = await updateProfile({ ...formData, yearsExperience: Number(formData.yearsExperience) });
+      if (token) {
+        login(token, res.user, curriculumProgress);
+      }
+      setIsEditing(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -51,39 +91,77 @@ export default function ProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         className="glass rounded-2xl p-6"
       >
-        <div className="flex items-start gap-5">
+        <div className="flex flex-col sm:flex-row items-start gap-5 relative">
+          <button 
+            onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+            disabled={saving}
+            className="absolute top-0 right-0 p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {isEditing ? <Save className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+          </button>
+          
           <motion.div
             whileHover={{ scale: 1.05 }}
             className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-2xl font-bold shadow-glow flex-shrink-0"
           >
-            {getInitials(candidate.member.name)}
+            {getInitials(user.name)}
           </motion.div>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">{candidate.member.name}</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">{candidate.member.jobRole}</p>
-            <div className="flex flex-wrap gap-3 mt-3">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <GraduationCap className="w-3.5 h-3.5" />
-                {candidate.member.education}
+          <div className="flex-1 w-full">
+            {isEditing ? (
+              <div className="space-y-3 mt-2">
+                <input 
+                  type="text" 
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-sm font-semibold"
+                  placeholder="Your Name"
+                />
+                <input 
+                  type="text" 
+                  value={formData.jobRole}
+                  onChange={e => setFormData({ ...formData, jobRole: e.target.value })}
+                  className="w-full bg-card border border-border rounded-lg px-3 py-1.5 text-sm"
+                  placeholder="Job Role"
+                />
+                <div className="flex gap-3">
+                  <input 
+                    type="text" 
+                    value={formData.education}
+                    onChange={e => setFormData({ ...formData, education: e.target.value })}
+                    className="flex-1 bg-card border border-border rounded-lg px-3 py-1.5 text-sm"
+                    placeholder="Education"
+                  />
+                  <input 
+                    type="number" 
+                    value={formData.yearsExperience}
+                    onChange={e => setFormData({ ...formData, yearsExperience: Number(e.target.value) })}
+                    className="w-24 bg-card border border-border rounded-lg px-3 py-1.5 text-sm"
+                    placeholder="Years"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Briefcase className="w-3.5 h-3.5" />
-                {candidate.member.yearsExperience} years experience
-              </div>
-            </div>
-            <div className="mt-3">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium",
-                  candidate.member.status === "active"
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                    : "bg-muted text-muted-foreground"
-                )}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                {candidate.member.status}
-              </span>
-            </div>
+            ) : (
+              <>
+                <h1 className="text-2xl font-bold text-foreground pr-10">{user.name}</h1>
+                <p className="text-muted-foreground text-sm mt-0.5">{user.jobRole}</p>
+                <div className="flex flex-wrap gap-3 mt-3">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    {user.education}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Briefcase className="w-3.5 h-3.5" />
+                    {user.yearsExperience} years experience
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                    active
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </motion.div>
@@ -122,7 +200,7 @@ export default function ProfilePage() {
           Mission History
         </h3>
         <div className="grid grid-cols-7 sm:grid-cols-10 lg:grid-cols-[repeat(31,1fr)] gap-1.5">
-          {candidate.missions?.map((mission, i) => (
+          {missions.map((mission, i) => (
             <motion.div
               key={mission.day}
               initial={{ opacity: 0, scale: 0 }}

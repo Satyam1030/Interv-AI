@@ -104,7 +104,7 @@ export interface Session {
 export interface InterviewResponse {
   reply: string;
   done: boolean;
-  isGeminiActive?: boolean;
+  isOpenRouterActive?: boolean;
   coveredDays?: number[];
   currentTopicDay?: number;
   questionCount?: number;
@@ -257,15 +257,31 @@ function getAuthHeaders(): Record<string, string> {
   };
 }
 
+async function safeFetchJson(url: string, options?: RequestInit) {
+  const res = await fetch(url, options);
+  const text = await res.text();
+  let data: any = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      if (!res.ok) {
+        throw new Error(`Server Error (${res.status}): ${text.substring(0, 150)}`);
+      }
+    }
+  }
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || `Request failed with status ${res.status}`);
+  }
+  return data;
+}
+
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
-  const res = await fetch(`${BASE}/auth/login`, {
+  return safeFetchJson(`${BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Login failed");
-  return data;
 }
 
 export async function registerUser(payload: {
@@ -277,151 +293,148 @@ export async function registerUser(payload: {
   yearsExperience?: number;
   education?: string;
 }): Promise<AuthResponse> {
-  const res = await fetch(`${BASE}/auth/register`, {
+  return safeFetchJson(`${BASE}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Registration failed");
-  return data;
+}
+
+export async function updateProfile(data: { name: string; jobRole: string; yearsExperience: number; education: string }) {
+  const token = localStorage.getItem("auth_token");
+  const res = await fetch(`${BASE}/auth/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Failed to update profile");
+  }
+  return res.json();
+}
+
+export async function syncClerkUser(payload: {
+  clerkId?: string;
+  email: string;
+  name?: string;
+  imageUrl?: string;
+}): Promise<AuthResponse> {
+  return safeFetchJson(`${BASE}/auth/clerk-sync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function fetchCurrentUser(): Promise<{ user: User; curriculumProgress: CurriculumProgressItem[] }> {
-  const res = await fetch(`${BASE}/auth/me`, {
+  return safeFetchJson(`${BASE}/auth/me`, {
     headers: getAuthHeaders(),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to fetch user");
-  return data;
 }
 
 export async function submitOnboarding(payload: {
   items: CurriculumProgressItem[];
+  name?: string;
   jobRole?: string;
   yearsExperience?: number;
   education?: string;
 }): Promise<{ success: boolean; user: User; curriculumProgress: CurriculumProgressItem[] }> {
-  const res = await fetch(`${BASE}/auth/onboarding`, {
+  return safeFetchJson(`${BASE}/auth/onboarding`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to submit onboarding");
-  return data;
 }
 
 export async function fetchCandidates(): Promise<Candidate[]> {
-  const res = await fetch(`${BASE}/candidates`);
-  if (!res.ok) throw new Error("Failed to fetch candidates");
-  const data = await res.json();
+  const data = await safeFetchJson(`${BASE}/candidates`);
   return data.candidates;
 }
 
 export async function fetchCurriculum(): Promise<CurriculumData> {
-  const res = await fetch(`${BASE}/curriculum`);
-  if (!res.ok) throw new Error("Failed to fetch curriculum");
-  return res.json();
+  return safeFetchJson(`${BASE}/curriculum`);
 }
 
 export async function startInterview(
   sessionId: string,
   candidate: Candidate
 ): Promise<InterviewResponse> {
-  const res = await fetch(`${BASE}/interview`, {
+  return safeFetchJson(`${BASE}/interview`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ sessionId, candidate }),
   });
-  if (!res.ok) throw new Error("Failed to start interview");
-  return res.json();
 }
 
 export async function sendMessage(
   sessionId: string,
   message: string
 ): Promise<InterviewResponse> {
-  const res = await fetch(`${BASE}/interview`, {
+  return safeFetchJson(`${BASE}/interview`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ sessionId, message }),
   });
-  if (!res.ok) throw new Error("Failed to send message");
-  return res.json();
 }
 
 export async function fetchInterviewHistory(): Promise<InterviewRecord[]> {
-  const res = await fetch(`${BASE}/history`, {
+  const data = await safeFetchJson(`${BASE}/history`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to fetch interview history");
-  const data = await res.json();
   return data.interviews || [];
 }
 
 export async function fetchInterviewDetail(interviewId: string): Promise<InterviewDetailReport> {
-  const res = await fetch(`${BASE}/history/${interviewId}`, {
+  return safeFetchJson(`${BASE}/history/${interviewId}`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to fetch interview detail");
-  return res.json();
 }
 
 export async function fetchDashboardStats(): Promise<DashboardStats> {
-  const res = await fetch(`${BASE}/history/dashboard/stats`, {
+  return safeFetchJson(`${BASE}/history/dashboard/stats`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to fetch dashboard stats");
-  return res.json();
 }
 
 export async function runContractTest(): Promise<unknown> {
-  const res = await fetch(`${BASE}/test-suite/run`, { method: "POST" });
-  return res.json();
+  return safeFetchJson(`${BASE}/test-suite/run`, { method: "POST" });
 }
 
-export async function getApiConfig(): Promise<{ hasGeminiKey: boolean; model: string }> {
+export async function getApiConfig(): Promise<{ hasOpenRouterKey: boolean; model: string }> {
   try {
-    const res = await fetch(`${BASE}/config`);
-    if (!res.ok) return { hasGeminiKey: false, model: "gemini-2.0-flash" };
-    return res.json();
+    return await safeFetchJson(`${BASE}/config`);
   } catch {
-    return { hasGeminiKey: false, model: "gemini-2.0-flash" };
+    return { hasOpenRouterKey: false, model: "OpenRouter-2.0-flash" };
   }
 }
 
-export async function setGeminiKey(apiKey: string): Promise<{ success: boolean; hasGeminiKey: boolean }> {
-  const res = await fetch(`${BASE}/config/key`, {
+export async function setOpenRouterKey(apiKey: string): Promise<{ success: boolean; hasOpenRouterKey: boolean }> {
+  return safeFetchJson(`${BASE}/config/key`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ apiKey }),
   });
-  if (!res.ok) throw new Error("Failed to update API Key");
-  return res.json();
 }
 
 export async function fetchPerformance(): Promise<PerformanceData> {
-  const res = await fetch(`${BASE}/performance`, {
+  return safeFetchJson(`${BASE}/performance`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to fetch performance data");
-  return res.json();
 }
 
 export async function completeInterview(sessionId: string): Promise<InterviewDetailReport> {
-  const res = await fetch(`${BASE}/interviews/${sessionId}/complete`, {
+  return safeFetchJson(`${BASE}/interviews/${sessionId}/complete`, {
     method: "POST",
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to complete interview");
-  return res.json();
 }
 
 export async function fetchInterviewResult(sessionId: string): Promise<InterviewDetailReport> {
-  const res = await fetch(`${BASE}/interviews/${sessionId}`, {
+  return safeFetchJson(`${BASE}/interviews/${sessionId}`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error("Failed to fetch interview result");
-  return res.json();
 }

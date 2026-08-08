@@ -39,7 +39,7 @@ export default function InterviewDetailPage() {
       <div className="flex flex-col items-center justify-center h-64 gap-3">
         <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
         <p className="text-xs text-muted-foreground animate-pulse">
-          Loading detailed Gemini evaluation report...
+          Loading detailed OpenRouter evaluation report...
         </p>
       </div>
     );
@@ -108,12 +108,12 @@ export default function InterviewDetailPage() {
             <p className="text-xl font-bold text-foreground leading-none">
               {interview.overallScore || feedback?.score || 80}%
             </p>
-            <p className="text-[10px] text-muted-foreground">Overall Gemini Score</p>
+            <p className="text-[10px] text-muted-foreground">Overall OpenRouter Score</p>
           </div>
         </div>
       </div>
 
-      {/* Score & Gemini Feedback Sections */}
+      {/* Score & OpenRouter Feedback Sections */}
       {feedback && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="glass rounded-2xl p-6 flex flex-col items-center justify-center gap-4">
@@ -195,7 +195,7 @@ export default function InterviewDetailPage() {
                   {msg.topicDay && isAI && (
                     <div className="mt-2 pt-2 border-t border-border/40 text-xs text-muted-foreground flex justify-between items-center">
                       <span>Day {msg.topicDay} topic</span>
-                      <span className="text-[10px] text-emerald-500 font-semibold">Gemini AI</span>
+                      <span className="text-[10px] text-emerald-500 font-semibold">OpenRouter AI</span>
                     </div>
                   )}
                 </div>

@@ -17,7 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { getApiConfig, setGeminiKey } from "@/lib/api";
+import { getApiConfig, setOpenRouterKey } from "@/lib/api";
 
 function SettingRow({
   icon,
@@ -68,14 +68,14 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState(true);
   const [sounds, setSounds] = useState(false);
   const [aiVerbose, setAiVerbose] = useState(true);
-  const [hasGeminiKey, setHasGeminiKey] = useState<boolean>(false);
+  const [hasOpenRouterKey, sethasOpenRouterKey] = useState<boolean>(false);
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
   const [savingKey, setSavingKey] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
     getApiConfig()
-      .then((cfg) => setHasGeminiKey(cfg.hasGeminiKey))
+      .then((cfg) => sethasOpenRouterKey(cfg.hasOpenRouterKey))
       .catch(console.error);
   }, []);
 
@@ -84,11 +84,11 @@ export default function SettingsPage() {
     setSavingKey(true);
     setSaveMessage(null);
     try {
-      const res = await setGeminiKey(apiKeyInput.trim());
+      const res = await setOpenRouterKey(apiKeyInput.trim());
       if (res.success) {
-        setHasGeminiKey(true);
+        sethasOpenRouterKey(true);
         setApiKeyInput("");
-        setSaveMessage("Gemini API Key saved successfully!");
+        setSaveMessage("OpenRouter API Key saved successfully!");
         setTimeout(() => setSaveMessage(null), 3000);
       }
     } catch (e) {
@@ -106,7 +106,7 @@ export default function SettingsPage() {
 
   const sections = [
     {
-      title: "Google Gemini API Integration",
+      title: "OpenRouter API Integration",
       icon: <Sparkles className="w-4 h-4 text-amber-500" />,
       content: (
         <div className="py-2 space-y-3">
@@ -118,16 +118,16 @@ export default function SettingsPage() {
               <span
                 className={cn(
                   "text-xs px-2.5 py-0.5 rounded-full font-semibold",
-                  hasGeminiKey
+                  hasOpenRouterKey
                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                     : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                 )}
               >
-                {hasGeminiKey ? "⚡ Active (Gemini Connected)" : "⚠️ Key Needed"}
+                {hasOpenRouterKey ? "⚡ Active (OpenRouter Connected)" : "⚠️ Key Needed"}
               </span>
             </div>
             <span className="text-xs text-muted-foreground font-mono">
-              Model: gemini-2.0-flash
+              Model: OpenRouter-2.0-flash
             </span>
           </div>
 
@@ -138,7 +138,7 @@ export default function SettingsPage() {
                 type="password"
                 value={apiKeyInput}
                 onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder={hasGeminiKey ? "Paste new key to update..." : "Paste your Google Gemini API Key..."}
+                placeholder={hasOpenRouterKey ? "Paste new key to update..." : "Paste your OpenRouter API Key..."}
                 className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-border/80 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
@@ -198,10 +198,10 @@ export default function SettingsPage() {
           <SettingRow
             icon={<Cpu className="w-4 h-4" />}
             title="Active Model Engine"
-            description="Automatic fallback across Gemini 2.0 Flash, 1.5 Flash, and 1.5 Pro"
+            description="Automatic fallback across OpenRouter 2.0 Flash, 1.5 Flash, and 1.5 Pro"
             control={
               <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-semibold flex-shrink-0">
-                gemini-2.0-flash
+                OpenRouter-2.0-flash
               </span>
             }
           />

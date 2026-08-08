@@ -16,7 +16,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     // Fetch user's completed interviews
-    const allInterviews = await InterviewStore.listByUser(userId);
+    const allInterviews = await InterviewStore.listByUser(userId, req.user.clerkId);
     const completedInterviews = allInterviews.filter(i => i.status === 'COMPLETED');
 
     // Update & fetch user performance summary

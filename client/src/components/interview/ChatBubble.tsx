@@ -57,7 +57,7 @@ export function ChatBubble({ message, index }: ChatBubbleProps) {
 
         {!isAI && message.verdict && message.score !== undefined && (
           <div className="mt-2 pt-2 border-t border-white/20 flex items-center justify-between text-xs">
-            <span className="text-white/80 font-medium">Gemini Turn Score:</span>
+            <span className="text-white/80 font-medium">OpenRouter Turn Score:</span>
             <span
               className={cn(
                 "px-2 py-0.5 rounded-full font-bold text-[10px]",
@@ -78,7 +78,7 @@ export function ChatBubble({ message, index }: ChatBubbleProps) {
             <span>Day {message.topicDay} topic</span>
             <span className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Gemini AI
+              OpenRouter AI
             </span>
           </div>
         )}

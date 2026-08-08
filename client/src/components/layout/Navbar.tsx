@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import { UserButton } from "@clerk/nextjs";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useAuth } from "@/components/providers/AuthContext";
 import { Bell, Search, LogOut } from "lucide-react";
@@ -50,6 +51,11 @@ export function Navbar() {
       <div className="flex items-center gap-2">
         <ThemeToggle />
         <div className="flex items-center gap-2 pl-2 border-l border-border/60">
+          {Boolean(
+            process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+            process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "your_clerk_publishable_key_here" &&
+            process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_")
+          ) && <UserButton />}
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
             {initials}
           </div>

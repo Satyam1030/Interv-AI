@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { User, CurriculumProgressItem, fetchCurrentUser } from "@/lib/api";
+import { User, CurriculumProgressItem, fetchCurrentUser, syncClerkUser } from "@/lib/api";
+import { useUser } from "@clerk/nextjs";
 
 interface AuthContextType {
   user: User | null;
@@ -25,11 +26,57 @@ const AuthContext = createContext<AuthContextType>({
   updateProgress: () => {},
 });
 
+function ClerkUserSyncer({ login, logout }: { login: (newToken: string, newUser: User, newProgress?: CurriculumProgressItem[]) => void, logout: () => void }) {
+  const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useUser();
+  const { user: localUser } = useAuth();
+  const [wasSignedIn, setWasSignedIn] = useState(false);
+  const syncAttempted = React.useRef(false);
+
+  useEffect(() => {
+    if (isClerkLoaded) {
+      if (isClerkSignedIn && clerkUser) {
+        setWasSignedIn(true);
+        const email = clerkUser.primaryEmailAddress?.emailAddress;
+        
+        // Only sync if we haven't attempted yet in this session, or if the local user is missing
+        if (email && (!syncAttempted.current || !localUser)) {
+          syncAttempted.current = true;
+          syncClerkUser({
+            clerkId: clerkUser.id,
+            email,
+            name: clerkUser.fullName || clerkUser.firstName || "Clerk User",
+            imageUrl: clerkUser.imageUrl,
+          })
+            .then((res) => {
+              login(res.token, res.user, res.curriculumProgress);
+            })
+            .catch((err) => {
+              console.error("Failed to sync Clerk user to MongoDB:", err);
+            });
+        }
+      } else if (!isClerkSignedIn && wasSignedIn) {
+        setWasSignedIn(false);
+        syncAttempted.current = false;
+        logout();
+      }
+    }
+  }, [isClerkLoaded, isClerkSignedIn, clerkUser, login, logout, wasSignedIn, localUser]);
+
+  return null;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [curriculumProgress, setCurriculumProgress] = useState<CurriculumProgressItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const isClerkValid = Boolean(
+    publishableKey &&
+    publishableKey !== "your_clerk_publishable_key_here" &&
+    publishableKey.startsWith("pk_")
+  );
 
   const logout = useCallback(() => {
     localStorage.removeItem("auth_token");
@@ -112,6 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateProgress,
       }}
     >
+      {isClerkValid && <ClerkUserSyncer login={login} logout={logout} />}
       {children}
     </AuthContext.Provider>
   );
