@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -50,23 +51,15 @@ export function Sidebar() {
       className="relative flex flex-col h-screen bg-sidebar border-r border-sidebar-border/60 shrink-0 overflow-hidden"
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 py-5 border-b border-sidebar-border/60">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-glow-sm">
-          <Sparkles className="w-4 h-4 text-white" />
-        </div>
-        <AnimatePresence>
-          {!collapsed && (
-            <motion.span
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.2 }}
-              className="font-bold text-lg text-foreground tracking-tight"
-            >
-              IntervAI
-            </motion.span>
-          )}
-        </AnimatePresence>
+      <div className={cn("flex items-center px-4 py-4 border-b border-sidebar-border/60", collapsed ? "justify-center" : "justify-start")}>
+        <Image
+          src="/logo.png"
+          alt="IntervAI Logo"
+          width={collapsed ? 40 : 120}
+          height={collapsed ? 40 : 120}
+          className="object-contain shrink-0 transition-all duration-300"
+          priority
+        />
       </div>
 
       {/* Navigation */}

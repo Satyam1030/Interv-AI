@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   fetchCurriculum,
@@ -174,9 +175,14 @@ export default function OnboardingPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--background)] gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-glow animate-pulse">
-          <Sparkles className="w-6 h-6 text-white" />
-        </div>
+        <Image
+          src="/logo.png"
+          alt="IntervAI Logo"
+          width={80}
+          height={80}
+          className="object-contain animate-pulse"
+          priority
+        />
         <p className="text-sm font-medium text-muted-foreground animate-pulse">
           Loading 31-Day AI Cohort Curriculum...
         </p>
