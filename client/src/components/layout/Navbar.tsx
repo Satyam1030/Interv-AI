@@ -55,10 +55,13 @@ export function Navbar() {
             process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
             process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== "your_clerk_publishable_key_here" &&
             process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_")
-          ) && <UserButton />}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-            {initials}
-          </div>
+          ) ? (
+            <UserButton />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+              {initials}
+            </div>
+          )}
           <span className="text-xs font-semibold text-foreground hidden sm:inline">
             {user?.name || "User"}
           </span>
