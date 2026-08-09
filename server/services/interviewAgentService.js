@@ -212,17 +212,21 @@ Task: Generate a warm, crisp, highly technical opening interview question. Ackno
     const currentDayInfo = this.getDayDetails(currentTopicDay);
 
     // Step 1: Real-time Evaluation of candidate's answer with OpenRouter
+    const lastInterviewerMsg = history.slice().reverse().find(m => m.role === 'interviewer');
+    const lastQuestion = lastInterviewerMsg ? lastInterviewerMsg.content : "Tell me about your experience.";
+
     const evalPrompt = `You are evaluating a candidate's response during a technical AI engineering interview.
 Candidate: ${candidateName} (${jobRole})
 Curriculum Topic: Day ${currentTopicDay} (${currentDayInfo.title})
 Tools involved: ${currentDayInfo.tools?.join(', ')}
 Key Objectives: ${JSON.stringify(currentDayInfo.objectives)}
 
+Interviewer's Question: "${lastQuestion}"
 Candidate's Answer: "${userMessage}"
 
-Evaluate their technical answer thoroughly and output JSON:
+Evaluate their technical answer to the interviewer's question thoroughly. If the answer is completely irrelevant, nonsensical, or factually incorrect, give it a very low score (0-20). Output JSON:
 {
-  "score": integer between 0 and 100 based on technical depth, accuracy, and trade-off understanding,
+  "score": integer between 0 and 100 based on technical depth, accuracy, relevance to the question, and trade-off understanding,
   "verdict": "STRONG" or "ADEQUATE" or "WEAK",
   "feedback": "1 sentence precise technical commentary on what was good or missing"
 }`;
