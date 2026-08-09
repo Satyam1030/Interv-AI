@@ -36,7 +36,7 @@ type DayStatus = "COMPLETED" | "ATTEMPTED" | "SKIPPED" | "NOT_STARTED";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, curriculumProgress } = useAuth();
   const { signOut } = useClerk();
 
   const [curriculum, setCurriculum] = useState<CurriculumData | null>(null);
@@ -58,7 +58,12 @@ export default function OnboardingPage() {
   };
 
   useEffect(() => {
-    if (user?.name && !name) setName(user.name);
+    if (user) {
+      if (user.name && !name) setName(user.name);
+      if (user.jobRole) setJobRole(user.jobRole);
+      if (user.yearsExperience !== undefined) setYearsExperience(user.yearsExperience);
+      if (user.education) setEducation(user.education);
+    }
   }, [user]);
 
   // Status mapping per day
@@ -88,23 +93,35 @@ export default function OnboardingPage() {
         const initSignals: Record<number, any> = {};
 
         data.days.forEach((d) => {
-          // Pre-populate core milestones as completed for quick onboarding demo
-          if ([1, 2, 7, 8, 12].includes(d.day)) {
-            initStatus[d.day] = "COMPLETED";
+          const existingProgress = curriculumProgress?.find((p) => p.curriculumDay === d.day);
+          
+          if (existingProgress) {
+            initStatus[d.day] = existingProgress.status as DayStatus;
             initSignals[d.day] = {
-              experienceLevel: "Comfortable",
-              practicalExperience: "Built a project",
-              attempts: 1,
-              confidence: 4,
+              experienceLevel: existingProgress.experienceLevel || "Familiar",
+              practicalExperience: existingProgress.practicalExperience || "Only studied",
+              attempts: existingProgress.attempts || 1,
+              confidence: existingProgress.confidence || 3,
             };
           } else {
-            initStatus[d.day] = "NOT_STARTED";
-            initSignals[d.day] = {
-              experienceLevel: "Familiar",
-              practicalExperience: "Only studied",
-              attempts: 1,
-              confidence: 3,
-            };
+            // Pre-populate core milestones as completed for quick onboarding demo if no progress
+            if ([1, 2, 7, 8, 12].includes(d.day)) {
+              initStatus[d.day] = "COMPLETED";
+              initSignals[d.day] = {
+                experienceLevel: "Comfortable",
+                practicalExperience: "Built a project",
+                attempts: 1,
+                confidence: 4,
+              };
+            } else {
+              initStatus[d.day] = "NOT_STARTED";
+              initSignals[d.day] = {
+                experienceLevel: "Familiar",
+                practicalExperience: "Only studied",
+                attempts: 1,
+                confidence: 3,
+              };
+            }
           }
         });
 
@@ -113,7 +130,7 @@ export default function OnboardingPage() {
       })
       .catch((e) => setError("Failed to load curriculum data: " + e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [curriculumProgress]);
 
   const handleStatusChange = (dayNum: number, newStatus: DayStatus) => {
     setStatuses((prev) => ({ ...prev, [dayNum]: newStatus }));
