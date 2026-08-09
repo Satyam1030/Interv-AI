@@ -293,9 +293,9 @@ Evaluate their technical answer to the interviewer's question thoroughly. If the
     const coveredDaysArr = Array.from(coveredDays);
 
     // Step 3: Check if interview complete (>= 8 questions answered AND >= 4 topics covered)
-    const isInterviewComplete = currentQuestionCount >= 8 && coveredDaysArr.length >= 4;
+    const isInterviewComplete = currentQuestionCount >= 9 && coveredDaysArr.length >= 4;
 
-    if (isInterviewComplete && (topicQuestionCount >= 2 || currentQuestionCount >= 9)) {
+    if (isInterviewComplete && (topicQuestionCount >= 2 || currentQuestionCount >= 10)) {
       const feedback = await this.generateFeedback(candidate, history, coveredDaysArr, evaluationTrail);
 
       const closingReply = `Thank you, ${candidateName}! That completes our technical interview session. You've demonstrated your engineering approach across ${coveredDaysArr.length} cohort topics. I have generated your comprehensive evaluation scorecard and performance feedback below.`;

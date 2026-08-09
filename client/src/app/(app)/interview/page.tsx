@@ -97,6 +97,7 @@ export default function InterviewPage() {
           role: "interviewer",
           content: response.reply,
           timestamp: new Date().toISOString(),
+          topicDay: response.currentTopicDay,
         },
       ]);
       setQuestionCount(response.questionCount || 1);
