@@ -1,465 +1,358 @@
-# ⚡ IntervAI — AI Technical Interviewer
+# ⚡ IntervAI — Autonomous AI Technical Interviewer
+
+<div align="center">
 
 > **Build the interviewer, not the interview.**
 
-**IntervAI** is an autonomous AI-powered technical interviewer designed to simulate realistic technical interviews and evaluate candidates through adaptive, multi-turn conversations.
-
-Instead of asking a fixed list of questions, IntervAI dynamically analyzes a candidate's responses and generates relevant follow-up questions around **implementation decisions, edge cases, system design, performance, latency, and technical trade-offs**.
-
-It is built around the **31-Day Enterprise AI Cohort curriculum**, covering areas such as **RAG, Vector Databases, Prompt Engineering, Agentic AI, MCP, and AI Deployment**.
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://interv-ai-xi.vercel.app/)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Satyam1030/Interv-AI)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+[![AI Engine](https://img.shields.io/badge/AI_Engine-OpenRouter_API-7C3AED?style=for-the-badge&logo=openai&logoColor=white)](https://openrouter.ai/)
+[![Frontend](https://img.shields.io/badge/Frontend-Next.js_16_%7C_React_19-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Backend](https://img.shields.io/badge/Backend-Node.js_%7C_Express-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://expressjs.com/)
 
 ---
 
-## 🌐 Live Demo
+**IntervAI** is an autonomous, context-aware AI technical interviewer powered by **OpenRouter API**. It conducts dynamic, multi-turn technical interviews to evaluate software engineers across real-world system architecture, implementation trade-offs, and edge cases.
 
-🚀 **Try IntervAI:**
-https://interv-ai-xi.vercel.app/
+Built around the **31-Day Enterprise AI Cohort** curriculum, IntervAI assesses concepts such as **RAG Pipelines, Vector Databases, Prompt Engineering, Agentic Workflows, Model Context Protocol (MCP), Observability, and Guardrails**.
 
-📦 **GitHub Repository:**
-https://github.com/Satyam1030/Interv-AI
+[Live Demo](https://interv-ai-xi.vercel.app/) • [Key Features](#-key-features) • [System Architecture](#%EF%B8%8F-system-architecture) • [Tech Stack](#%EF%B8%8F-tech-stack) • [Getting Started](#-getting-started) • [API Docs](#-api-documentation)
+
+---
+
+</div>
+
+## 🌐 Live Demo & Repository
+
+- 🚀 **Deployed Web Application:** [https://interv-ai-xi.vercel.app/](https://interv-ai-xi.vercel.app/)
+- 📦 **GitHub Repository:** [https://github.com/Satyam1030/Interv-AI](https://github.com/Satyam1030/Interv-AI)
 
 ---
 
 ## 🎯 Why IntervAI?
 
-Traditional interview platforms generally rely on predefined question banks. This can make interviews repetitive and fails to adapt to the candidate's actual knowledge.
+Traditional technical interview platforms rely on static question banks or automated multiple-choice tests. They fail to assess how an engineer thinks, makes trade-offs, or handles edge cases in production.
 
-IntervAI solves this by introducing an **AI interviewer agent** that:
+**IntervAI changes this by deploying an AI interviewer agent that:**
 
-* Understands the candidate's previous responses
-* Generates contextual follow-up questions
-* Probes deeper into technical decisions
-* Tests understanding of edge cases and trade-offs
-* Evaluates the candidate after the interview
-* Generates a structured performance report
-
-The goal is to make technical interviews **more dynamic, realistic, and personalized**.
+* 🧠 **Adapts dynamically** to candidate responses in real time.
+* 🔍 **Probes deep** into technical trade-offs, edge cases, latency, and scalability.
+* 🎯 **Tailors question sets** based on the candidate's learning history and completed/skipped missions.
+* 📊 **Evaluates every turn** using quantitative scores and technical criteria.
+* 📝 **Generates executive performance scorecards** complete with Strengths, Knowledge Gaps, and Next Steps.
 
 ---
 
 ## ✨ Key Features
 
-### 👤 Candidate Portal
+### 🤖 1. Adaptive AI Interviewer (Powered by OpenRouter API)
+Instead of following a fixed questionnaire script, IntervAI uses **OpenRouter API** (featuring models such as `inclusionai/ling-3.0-tiny:free`) to run multi-turn technical conversations. The interviewer analyzes technical depth, detects incomplete logic, and asks relevant follow-up questions.
 
-Candidates can select their profile and view relevant learning information before starting an interview.
+### 👤 2. Candidate Portal & Mission Telemetry
+Candidates are initialized with personalized context derived from their cohort performance:
+* Completed vs. skipped/struggled learning missions.
+* Target curriculum focus areas (prioritizing topics requiring validation).
+* Customized introductory and scenario-based technical prompts.
 
-**Includes:**
+### 🔍 3. Dynamic Probing & Trade-off Analysis
+IntervAI evaluates candidates across key architectural vectors:
+* **System Design & RAG Architecture:** Vector indexing, chunking strategies, embeddings, hybrid search.
+* **Prompt Engineering:** Structured output schemas, system instructions, guardrails.
+* **Agentic Workflows & MCP:** Tool orchestration, state persistence, protocol integrations.
+* **Operational Readiness:** Latency budgets, OpenTelemetry instrumentation, fallback strategies.
 
-* Candidate profile preview
-* Learning signals
-* Mission progress
-* Missed/skipped learning missions
-* Personalized interview context
+### 📊 4. Decision-Grade Candidate Scorecard
+Upon completing the multi-turn session, IntervAI delivers a structured evaluation matrix:
+* **Overall Score (0–100):** Weighted combination of Technical Depth (40%), Reasoning (25%), Communication (15%), and Problem Solving (20%).
+* **Detailed Breakdown:** Granular sub-scores for technical capabilities.
+* **Actionable Feedback:** Key Demonstrated Strengths, Critical Gaps, and Recommended Next Steps.
+
+### 🛡️ 5. Dual Engine & Graceful Fallbacks
+* **OpenRouter AI Engine:** Active when `OPENROUTER_API_KEY` is configured.
+* **Heuristic Engine Fallback:** In-memory score calculation and rule-based questioning ensures zero-downtime execution even during API key absence or rate limits.
 
 ---
 
-### 🤖 Adaptive AI Interviewer
-
-IntervAI uses **Google Gemini AI** to conduct multi-turn technical interviews.
-
-The interviewer doesn't simply follow a predefined script. It analyzes the candidate's response and decides what should be asked next.
-
-Example:
+## 🏗️ System Architecture
 
 ```text
-Interviewer:
-How would you implement a RAG pipeline?
-
-Candidate:
-I would use embeddings and store them in a vector database.
-
-Interviewer:
-Which embedding model would you choose and why?
-
-Candidate:
-I would use SentenceTransformers...
-
-Interviewer:
-How would you handle irrelevant retrieved documents?
+ ┌─────────────────────────────────────────────────────────────────────────┐
+ │                            Candidate / User                             │
+ └────────────────────────────────────┬────────────────────────────────────┘
+                                      │
+                                      ▼
+ ┌─────────────────────────────────────────────────────────────────────────┐
+ │                             Client (Frontend)                           │
+ │             Next.js 16 + React 19 + Tailwind CSS + Radix UI             │
+ └────────────────────────────────────┬────────────────────────────────────┘
+                                      │
+                                REST API (HTTP)
+                                      │
+                                      ▼
+ ┌─────────────────────────────────────────────────────────────────────────┐
+ │                             Server (Backend)                            │
+ │                        Node.js + Express.js API                         │
+ └───────────┬────────────────────────┬───────────────────────┬────────────┘
+             │                        │                       │
+             ▼                        ▼                       ▼
+ ┌───────────────────────┐┌───────────────────────┐┌───────────────────────┐
+ │    OpenRouter API     ││   Session & State     ││   Cohort Curriculum   │
+ │ (AI Intelligence)     ││ (MongoDB / In-Memory) ││   & Candidate Data    │
+ └───────────┬───────────┘└───────────────────────┘└───────────────────────┘
+             │
+             ▼
+ ┌─────────────────────────────────────────────────────────────────────────┐
+ │                   Interview & Evaluation Engine                         │
+ │   • Turn Evaluation  • Dynamic Probing  • Scorecard Generation          │
+ └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-This creates a more realistic interview experience.
-
 ---
 
-### 🔍 Dynamic Probing
-
-The AI interviewer can explore areas such as:
-
-* Implementation choices
-* Architecture decisions
-* Edge cases
-* Scalability
-* Latency
-* Reliability
-* Security
-* Model selection
-* Vector database decisions
-* System trade-offs
-
-This helps determine whether a candidate **actually understands the technology** instead of simply memorizing definitions.
-
----
-
-### 📊 AI Performance Evaluation
-
-After the interview, IntervAI generates a structured scorecard containing:
-
-| Section       | Description                              |
-| ------------- | ---------------------------------------- |
-| 📝 Summary    | Overall interview performance            |
-| 💪 Strengths  | Areas where the candidate performed well |
-| ⚠️ Gaps       | Concepts or skills requiring improvement |
-| 🚀 Next Steps | Recommended areas for further learning   |
-
----
-
-### 🧪 Live API Contract Tester
-
-The project includes a built-in mechanism for validating the interview API against the expected contract.
-
-It verifies the behavior of:
-
-```http
-POST /api/interview
-```
-
-including interview initialization, conversation turns, and interview completion.
-
----
-
-### 🎨 Modern Glassmorphic UI
-
-The frontend uses a modern glassmorphism-inspired interface with:
-
-* Responsive layout
-* Custom CSS design system
-* Smooth interactions
-* Candidate selection interface
-* Interview conversation interface
-* Structured feedback display
-* Lucide icons
-
----
-
-# 🏗️ System Architecture
+## 🔄 Interview Workflow
 
 ```text
-                    ┌─────────────────────┐
-                    │      Candidate      │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │   React Frontend    │
-                    │       + Vite        │
-                    └──────────┬──────────┘
-                               │
-                         HTTP / REST
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │   Express Backend   │
-                    │      Node.js        │
-                    └──────────┬──────────┘
-                               │
-                ┌──────────────┼──────────────┐
-                │              │              │
-                ▼              ▼              ▼
-        ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-        │   Gemini    │ │   Session   │ │  Candidate  │
-        │     AI      │ │    State    │ │    Data     │
-        └─────────────┘ └─────────────┘ └─────────────┘
-                │
-                ▼
-        ┌─────────────────────┐
-        │ Adaptive Interview  │
-        │   + Evaluation      │
-        └──────────┬──────────┘
-                   │
-                   ▼
-        ┌─────────────────────┐
-        │ Structured Feedback │
-        │ Summary / Strengths │
-        │ Gaps / Next Steps   │
-        └─────────────────────┘
+                     Candidate Selection & Profile Load
+                                     │
+                                     ▼
+                    Target Curriculum Modules Identified
+                                     │
+                                     ▼
+                      Session Initialized (Turn 1)
+                                     │
+                                     ▼
+                   OpenRouter AI Generates Tailored Question
+                                     │
+                                     ▼
+                        Candidate Submits Answer
+                                     │
+                                     ▼
+                   OpenRouter Evaluates Answer & Score
+                                     │
+                                     ▼
+                        Is Interview Complete?
+                        ├── No  ──► Probe Deeper / Next Topic ──► (Loop)
+                        └── Yes ──► Generate Executive Scorecard
+                                     │
+                                     ▼
+                      Display Strengths, Gaps & Next Steps
 ```
 
 ---
 
-# 🔄 Interview Workflow
-
-```text
-Candidate Selection
-        │
-        ▼
-Candidate Profile Loaded
-        │
-        ▼
-Interview Initialized
-        │
-        ▼
-AI Generates Question
-        │
-        ▼
-Candidate Responds
-        │
-        ▼
-AI Analyzes Response
-        │
-        ▼
-Follow-up / Deeper Question
-        │
-        ├───────────────┐
-        │               │
-        ▼               │
- More Questions? ───────┘
-        │
-       No
-        │
-        ▼
-AI Evaluation
-        │
-        ▼
-Performance Scorecard
-        │
-        ▼
-Strengths + Gaps + Next Steps
-```
-
----
-
-# 🛠️ Tech Stack
+## 🛠️ Tech Stack
 
 ### Frontend
-
-* **React 18**
-* **Vite**
-* **Lucide Icons**
-* **Custom CSS Design System**
+- **Framework:** Next.js 16 (App Router) & React 19
+- **Styling:** Tailwind CSS v4, Custom Design System
+- **Components & UI:** Radix UI Primitives, Lucide Icons, Framer Motion
+- **Form & Validation:** React Hook Form, Zod
+- **Authentication:** Clerk (`@clerk/nextjs`)
 
 ### Backend
+- **Runtime:** Node.js (ES Modules)
+- **Framework:** Express.js
+- **Database / Storage:** MongoDB with Mongoose (with In-Memory Session Fallback)
+- **Authentication & Security:** JWT, bcryptjs, `@clerk/express`
 
-* **Node.js**
-* **Express.js**
-* **Mongoose**
-* **In-Memory Session Fallback**
-
-### AI
-
-* **Google Gemini API**
-* `@google/generative-ai`
-
-### Data
-
-* 31-Day Enterprise AI Cohort Curriculum
-* Candidate Profiles
-* Interview Session Data
-
-### Deployment
-
-* **Vercel** for the deployed application
+### AI & Intelligence Engine
+- **Provider:** **OpenRouter API** (`https://openrouter.ai/api/v1/chat/completions`)
+- **Default Model:** `inclusionai/ling-3.0-tiny:free` (configurable)
+- **Integration:** Native Fetch API with JSON cleaning and resilient fallbacks
 
 ---
 
-# 📁 Project Structure
+## 📁 Project Structure
 
 ```text
 Interv-AI/
+├── client/                      # Next.js 16 Frontend Application
+│   ├── src/                     # Source components, pages, and hooks
+│   ├── public/                  # Static assets
+│   ├── package.json             # Frontend dependencies
+│   └── next.config.ts           # Next.js configuration
 │
-├── client/
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── ...
+├── server/                      # Express.js Backend Application
+│   ├── controllers/             # Request handlers
+│   ├── data/                    # Cohort curriculum & candidate JSON data
+│   │   ├── candidates.json      # Candidate profiles & mission histories
+│   │   └── curriculum.json      # 31-Day Enterprise AI curriculum breakdown
+│   ├── middleware/              # Auth & error handling middlewares
+│   ├── models/                  # Mongoose models for candidates & sessions
+│   ├── routes/                  # REST API routes (e.g. /api/interview)
+│   ├── services/                # OpenRouter AI Interview Agent Service
+│   │   └── interviewAgentService.js
+│   ├── server.js                # Server entry point
+│   └── package.json             # Backend dependencies
 │
-├── server/
-│   ├── routes/
-│   ├── models/
-│   ├── services/
-│   ├── package.json
-│   └── ...
-│
-├── .gitignore
-├── package.json
-└── README.md
+├── .gitignore                   # Git ignore patterns
+├── package.json                 # Workspace root scripts
+├── prompts.md                   # Complete AI Development Prompt Log
+└── README.md                    # Project Documentation
 ```
 
-The repository is organized into separate **client** and **server** applications.
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+Ensure you have installed:
+* **Node.js** (v18.x or higher)
+* **npm** (v9.x or higher)
+* **Git**
+* **OpenRouter API Key** (Get one at [openrouter.ai/keys](https://openrouter.ai/keys))
 
 ---
 
-# 🚀 Getting Started
-
-## Prerequisites
-
-Make sure you have installed:
-
-* Node.js
-* npm
-* Git
-* Google Gemini API Key
-
----
-
-## 1. Clone the Repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/Satyam1030/Interv-AI.git
-
 cd Interv-AI
 ```
 
----
+### 2. Install Dependencies
 
-## 2. Install Backend Dependencies
+You can install all dependencies for both client and server from the root directory:
 
 ```bash
-cd server
-npm install
+npm run install:all
+```
+
+*Or install them individually:*
+
+```bash
+# Install Server Dependencies
+cd server && npm install
+
+# Install Client Dependencies
+cd ../client && npm install
 ```
 
 ---
 
-## 3. Install Frontend Dependencies
+## 🔐 Environment Variables
 
-```bash
-cd ../client
-npm install
-```
-
----
-
-# 🔐 Environment Variables
-
-Create a `.env` file inside the `server` directory:
+Create a `.env` file in the `server` directory:
 
 ```env
+# Server Configuration
 PORT=5000
+NODE_ENV=development
+
+# OpenRouter AI Key (Required for live OpenRouter model calls)
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+
+# Database & Security (Optional / Pre-configured fallbacks)
 MONGODB_URI=mongodb://127.0.0.1:27017/intervai
 JWT_SECRET=your_super_secret_jwt_key_here
-OPENROUTER_API_KEY=your_OPENROUTER_API_KEY_here
-NODE_ENV=development
 ```
 
-> ⚠️ Never commit your API key to GitHub.
+> ⚠️ **Security Warning:** Never commit your `.env` file or private API keys to GitHub.
 
 ---
 
-# ▶️ Run the Application
+## ▶️ Running the Application
 
-### Start Backend
+### Option A: Concurrent Development (Recommended)
 
+From the root directory, run server and client concurrently:
+
+```bash
+# Terminal 1: Backend Server
+npm run dev:server
+
+# Terminal 2: Frontend Client
+npm run dev:client
+```
+
+### Option B: Individual Service Launch
+
+**Start Backend:**
 ```bash
 cd server
 npm start
 ```
+*Backend runs on: `http://localhost:5000`*
 
-The backend runs on:
-
-```text
-http://localhost:5000
-```
-
-### Start Frontend
-
-Open another terminal:
-
+**Start Frontend:**
 ```bash
 cd client
 npm run dev
 ```
-
-The frontend runs on:
-
-```text
-http://localhost:3000
-```
-
-Then open:
-
-```text
-http://localhost:3000
-```
+*Frontend runs on: `http://localhost:3000`*
 
 ---
 
-# 📡 API Documentation
+## 📡 API Documentation
 
-## Start an Interview
+### 1. Start or Continue Interview Turn
 
 ```http
 POST /api/interview
 ```
 
-### Request
+#### Request (Initialization / Turn 1)
 
 ```json
 {
-  "sessionId": "abc-123",
+  "sessionId": "session-1723400000000",
   "candidate": {
-    "name": "Candidate Name"
+    "member": {
+      "id": "cand-01",
+      "name": "Satyam",
+      "jobRole": "AI Engineer"
+    }
   }
 }
 ```
 
-### Response
+#### Response (Interviewer Question)
 
 ```json
 {
-  "reply": "Welcome to your technical interview...",
-  "done": false
+  "reply": "Welcome Satyam! As an AI Engineer, let's start with Day 7 (Vector DB & Indexing). How did you structure your embedding pipeline and what trade-offs influenced your choice of vector index?",
+  "done": false,
+  "isOpenRouterActive": true
 }
 ```
 
----
-
-## Continue the Interview
-
-```http
-POST /api/interview
-```
-
-### Request
+#### Request (Candidate Response / Subsequent Turn)
 
 ```json
 {
-  "sessionId": "abc-123",
-  "message": "I used SentenceTransformers with ChromaDB..."
+  "sessionId": "session-1723400000000",
+  "message": "I used SentenceTransformers to generate 384-dimensional embeddings and indexed them using HNSW in ChromaDB for fast approximate nearest neighbor search..."
 }
 ```
 
-### Response
+#### Response (Interview Complete & Executive Feedback)
+
+When the interview reaches completion criteria (e.g. 8+ questions across 4+ topics), `done` is set to `true`:
 
 ```json
 {
-  "reply": "Why did you choose ChromaDB for this use case?",
-  "done": false
-}
-```
-
----
-
-## Complete Interview
-
-Once the interview is completed, the API returns structured feedback:
-
-```json
-{
-  "reply": "Interview completed.",
+  "reply": "Thank you, Satyam! That completes our technical interview session...",
   "done": true,
+  "isOpenRouterActive": true,
   "feedback": {
-    "summary": "Strong understanding of RAG concepts...",
+    "score": 88,
+    "technical": 90,
+    "reasoning": 85,
+    "communication": 88,
+    "problemSolving": 87,
+    "summary": "Satyam demonstrated strong conceptual and practical engineering clarity across key AI cohort modules...",
     "strengths": [
-      "Good understanding of vector databases",
-      "Clear explanation of implementation choices"
+      "Clear architectural reasoning for vector indexing and HNSW parameters",
+      "Effective application of structured prompt validation"
     ],
     "gaps": [
-      "Needs deeper understanding of retrieval optimization"
+      "Could provide deeper operational metrics on token streaming latency"
     ],
     "next": [
-      "Study hybrid search",
-      "Explore reranking techniques"
+      "Implement end-to-end tracing with OpenTelemetry for production vector retrieval"
     ]
   }
 }
@@ -467,144 +360,68 @@ Once the interview is completed, the API returns structured feedback:
 
 ---
 
-# 🧠 AI Interview Topics
+## 🧠 AI Cohort Curriculum Coverage
 
-IntervAI is designed around modern AI engineering concepts, including:
+IntervAI evaluates candidate competency across the 31-Day Enterprise AI Cohort:
 
-```text
-RAG
-│
-├── Embeddings
-├── Vector Databases
-├── Retrieval
-└── Context Generation
-
-Prompt Engineering
-│
-├── Prompt Design
-├── Context Management
-└── Structured Outputs
-
-Agentic AI
-│
-├── AI Agents
-├── Tool Usage
-├── Planning
-└── Decision Making
-
-MCP
-│
-├── Model Context Protocol
-├── Tools
-└── External Resources
-
-AI Deployment
-│
-├── APIs
-├── Scalability
-├── Latency
-└── Production Systems
-```
+| Day Range | Topic Area | Focus Concepts |
+|---|---|---|
+| **Days 1–5** | Foundations & Prompting | Zero-shot/few-shot prompting, structured output schemas, system instructions |
+| **Days 6–10** | RAG & Vector Databases | Embeddings, HNSW/IVF indexing, Chunking strategies, Retrieval optimization |
+| **Days 11–15** | Fine-Tuning & Quantization | PEFT, LoRA/QLoRA, Model distillation, Inference latency optimization |
+| **Days 16–20** | Agentic AI & MCP | Tool calling, Model Context Protocol, Multi-agent orchestration, State management |
+| **Days 21–25** | Evaluation & Guardrails | LLM-as-a-Judge, Prompt injection defense, Output validation, Hallucination reduction |
+| **Days 26–31** | Production AI & Observability | OpenTelemetry, Token budgets, Streaming endpoints, Cost & rate-limit scaling |
 
 ---
 
-# 💡 What Makes IntervAI Different?
+## 💡 Traditional Interviews vs. IntervAI
 
-| Traditional Interview    | IntervAI                    |
-| ------------------------ | --------------------------- |
-| Fixed questions          | Adaptive questions          |
-| Predefined question flow | AI-driven conversation      |
-| Generic evaluation       | Candidate-specific feedback |
-| Limited follow-ups       | Dynamic probing             |
-| Manual assessment        | AI-generated scorecard      |
-| Static experience        | Conversational experience   |
-
----
-
-# 🎯 Project Objectives
-
-The main objectives of IntervAI are to:
-
-1. Automate technical interview processes.
-2. Provide a realistic conversational interview experience.
-3. Adapt questions based on candidate responses.
-4. Identify technical strengths and knowledge gaps.
-5. Provide actionable learning recommendations.
-6. Demonstrate practical applications of Agentic AI.
-7. Build an extensible architecture for AI-powered assessments.
+| Feature | Traditional Technical Interview | IntervAI (Powered by OpenRouter) |
+|---|---|---|
+| **Question Source** | Static, fixed question banks | Dynamic, AI-generated context-aware questions |
+| **Adaptability** | Rigid sequence | Probes deeper based on previous candidate answers |
+| **Coverage** | Generic algorithms or trivia | Real-world cohort missions, system design, & trade-offs |
+| **Evaluation** | Subjective / delayed feedback | Real-time score calculation & structured report |
+| **Scaling** | Time-intensive for senior engineers | Instant, 24/7 scalable interview execution |
 
 ---
 
-# 🔮 Future Improvements
+## 🔮 Future Roadmap
 
-Potential future enhancements include:
-
-* 🎙️ Voice-based interviews
-* 👁️ Video interview support
-* 📈 Candidate performance analytics
-* ⭐ Numerical scoring and ranking
-* 🧑‍💼 Interviewer/admin dashboard
-* 📚 Personalized learning paths
-* 🧠 Multiple AI model support
-* 🔄 Interview history and progress tracking
-* 🗄️ Persistent database-backed sessions
-* 🛡️ Anti-cheating mechanisms
-* 🌐 Multi-language interviews
-* 📄 Resume-based interview generation
-* 💻 Coding-round integration
-* ⏱️ Real-time interview timer
+- 🎙️ **Voice & Audio Interface:** Speech-to-text and text-to-speech candidate interaction.
+- 💻 **Live Coding Sandbox:** Interactive code runner for evaluating live script submissions.
+- 📊 **Recruiter & Admin Analytics:** Dashboard for viewing aggregate candidate score distributions.
+- 🛡️ **Proctoring & Anti-Cheat:** Code similarity and candidate behavior verifiers.
 
 ---
 
-# 🤝 Contributing
+## 🤝 Contributing
 
-Contributions are welcome!
+Contributions are warmly welcomed!
 
-### 1. Fork the repository
-
-```bash
-git fork https://github.com/Satyam1030/Interv-AI
-```
-
-### 2. Create a feature branch
-
-```bash
-git checkout -b feature/amazing-feature
-```
-
-### 3. Commit your changes
-
-```bash
-git commit -m "Add amazing feature"
-```
-
-### 4. Push the branch
-
-```bash
-git push origin feature/amazing-feature
-```
-
-### 5. Open a Pull Request
+1. **Fork the Repository**
+2. **Create a Feature Branch:** `git checkout -b feature/amazing-feature`
+3. **Commit Your Changes:** `git commit -m "Add amazing feature"`
+4. **Push to Branch:** `git push origin feature/amazing-feature`
+5. **Open a Pull Request**
 
 ---
 
-# 📜 License
+## 📜 License
 
-This project is licensed under the **MIT License**.
-
----
-
-# 👨‍💻 Author
-
-### Satyam1030
-
-Built as an AI-powered technical interview solution for the **31-Day Enterprise AI Cohort**.
+Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ---
 
-## ⭐ Support
+## 👨‍💻 Author & Acknowledgments
 
-If you find this project useful, consider giving it a ⭐ on GitHub!
+**Satyam (Satyam1030)**
+* Built for the **31-Day Enterprise AI Cohort**
+* AI Intelligence powered by [OpenRouter API](https://openrouter.ai/)
+
+<div align="center">
 
 **IntervAI — Build the interviewer, not the interview.**
 
+</div>
